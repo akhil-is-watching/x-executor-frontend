@@ -37,17 +37,18 @@ export function OrgInvitesPage() {
   async function onCreate(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!token || !orgId) return;
-    setError(null);
-    setCreating(true);
-    const form = new FormData(e.currentTarget);
+    const formEl = e.currentTarget;
+    const form = new FormData(formEl);
     const expiresRaw = form.get("expiresInHours") as string;
     const maxUsesRaw = form.get("maxUses") as string;
+    setError(null);
+    setCreating(true);
     try {
       await invitesApi.create(token, orgId, {
         ...(expiresRaw ? { expiresInHours: Number(expiresRaw) } : {}),
         ...(maxUsesRaw ? { maxUses: Number(maxUsesRaw) } : {}),
       });
-      e.currentTarget.reset();
+      formEl.reset();
       load();
     } catch (err) {
       setError(errorMessage(err));

@@ -35,17 +35,18 @@ export function OrgsListPage() {
   async function onCreate(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!token) return;
+    const formEl = e.currentTarget;
+    const form = new FormData(formEl);
+    const slug = (form.get("slug") as string)?.trim();
     setError(null);
     setCreating(true);
-    const form = new FormData(e.currentTarget);
-    const slug = (form.get("slug") as string)?.trim();
     try {
       await orgsApi.create(token, {
         name: form.get("name") as string,
         ...(slug ? { slug } : {}),
       });
+      formEl.reset();
       setShowCreate(false);
-      e.currentTarget.reset();
       load();
     } catch (err) {
       setError(errorMessage(err));
