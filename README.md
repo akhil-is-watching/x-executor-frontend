@@ -86,6 +86,8 @@ corepack enable && bun install --frozen-lockfile
 
 **“I’m already logged into X but it still asks me to connect”** — Normal. Being signed in at x.com is not the same as authorizing this app. The user must open the invite link, tap **Authorize with X**, and approve on X’s screen. Success ends on `/oauth/success` with `@username` shown.
 
+**X shows JSON `"Redirect is requested"` after Authorize** — X wants the login flow first. Hub must use `buildBrowserAuthorizeUrl` (redirect via `twitter.com/i/flow/login`). Redeploy Hub after updating.
+
 **X OAuth 400 / “not working”** — Usually Hub `X_REDIRECT_URI` is wrong. It must be a full URL, e.g. `https://your-hub.up.railway.app/api/v1/oauth/x/callback`, registered identically in the X Developer Portal. A broken value looks like `https:///api/v1/oauth/x/callback` (missing hostname).
 
 | Check | Where |

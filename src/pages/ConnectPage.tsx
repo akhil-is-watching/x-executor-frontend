@@ -29,10 +29,7 @@ export function ConnectPage() {
   const hubConfigError = validateHubPublicBaseUrl();
   const recentSuccess = token ? getOAuthSuccess(token) : null;
 
-  function handleConnect() {
-    if (!token || hubConfigError) return;
-    window.location.href = oauthStartUrl(token);
-  }
+  const hubStartUrl = token && !hubConfigError ? oauthStartUrl(token) : undefined;
 
   if (loading) {
     return <p className="text-muted-foreground text-center">Loading invite…</p>;
@@ -133,9 +130,17 @@ export function ConnectPage() {
           </p>
           <p>Each invite links one X account to this organization. No dashboard login is required.</p>
         </div>
-        <Button className="w-full" size="lg" onClick={handleConnect} disabled={Boolean(hubConfigError)}>
-          Authorize with X
-        </Button>
+        {hubStartUrl ? (
+          <Button className="w-full" size="lg" asChild>
+            <a href={hubStartUrl} rel="noopener noreferrer">
+              Authorize with X
+            </a>
+          </Button>
+        ) : (
+          <Button className="w-full" size="lg" disabled>
+            Authorize with X
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
