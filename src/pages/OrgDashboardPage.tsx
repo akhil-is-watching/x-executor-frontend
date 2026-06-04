@@ -78,8 +78,13 @@ export function OrgDashboardPage() {
 
       {connections.length === 0 ? (
         <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            No connections yet. Create an invite and share the connect link.
+          <CardContent className="py-8 text-center text-muted-foreground space-y-2">
+            <p>No X accounts linked yet.</p>
+            <p className="text-sm">
+              Create an invite, share <strong className="text-foreground">Open connect page</strong>, and have the user
+              tap <strong className="text-foreground">Authorize with X</strong> on X&apos;s screen. Being logged into
+              x.com alone is not enough.
+            </p>
           </CardContent>
         </Card>
       ) : (

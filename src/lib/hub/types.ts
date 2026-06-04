@@ -46,6 +46,8 @@ export type InvitePublic = {
   expired: boolean;
   revoked: boolean;
   maxUsesReached: boolean;
+  useCount?: number;
+  maxUses?: number | null;
 };
 
 export type Connection = {

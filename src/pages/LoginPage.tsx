@@ -4,12 +4,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth/AuthContext";
+import { validateHubApiUrl } from "@/lib/hub/client";
 import { useState, type FormEvent } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 
 export function LoginPage() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const apiConfigError = validateHubApiUrl();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -22,7 +25,8 @@ export function LoginPage() {
     const form = new FormData(e.currentTarget);
     try {
       await login(form.get("email") as string, form.get("password") as string);
-      navigate("/orgs");
+      const redirectTo = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? "/orgs";
+      navigate(redirectTo, { replace: true });
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -37,7 +41,13 @@ export function LoginPage() {
         <CardDescription>Access your organizations and X connections.</CardDescription>
       </CardHeader>
       <CardContent>
-        <ErrorAlert error={error} />
+        <ErrorAlert error={apiConfigError ?? error} />
+        {apiConfigError && (
+          <p className="mb-4 text-sm text-muted-foreground">
+            Dashboard login cannot reach Hub until <code className="text-xs">PUBLIC_HUB_API_URL</code> is set on
+            Vercel and the app is redeployed.
+          </p>
+        )}
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
@@ -47,7 +57,7 @@ export function LoginPage() {
             <Label htmlFor="password">Password</Label>
             <Input id="password" name="password" type="password" required autoComplete="current-password" />
           </div>
-          <Button type="submit" disabled={submitting}>
+          <Button type="submit" disabled={submitting || Boolean(apiConfigError)}>
             {submitting ? "Signing in…" : "Sign in"}
           </Button>
         </form>

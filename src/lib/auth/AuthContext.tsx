@@ -1,4 +1,5 @@
 import { authApi } from "@/lib/hub/api";
+import { HubApiError } from "@/lib/hub/client";
 import type { User } from "@/lib/hub/types";
 import {
   createContext,
@@ -41,10 +42,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refreshUser()
-      .catch(() => {
-        clearToken();
-        setTokenState(null);
-        setUser(null);
+      .catch(err => {
+        if (err instanceof HubApiError && err.status === 401) {
+          clearToken();
+          setTokenState(null);
+          setUser(null);
+        }
       })
       .finally(() => setLoading(false));
   }, [refreshUser]);

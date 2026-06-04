@@ -1,17 +1,70 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { saveOAuthSuccess } from "@/lib/oauth-session";
 import { CheckCircle2 } from "lucide-react";
+import { useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 export function OAuthSuccessPage() {
   const [params] = useSearchParams();
+  const oauthError = params.get("error");
+  const oauthErrorDescription = params.get("error_description");
   const xUsername = params.get("xUsername");
   const orgId = params.get("orgId");
   const xUserId = params.get("xUserId");
   const webhookId = params.get("webhookId");
   const webhookUrl = params.get("webhookUrl");
+  const inviteToken = params.get("invite");
 
   const hasData = Boolean(xUsername || orgId);
+
+  useEffect(() => {
+    if (xUsername && inviteToken) {
+      saveOAuthSuccess(inviteToken, xUsername);
+    }
+  }, [xUsername, inviteToken]);
+
+  if (oauthError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Connection failed</CardTitle>
+          <CardDescription>X did not complete authorization.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm">
+          <p className="text-muted-foreground">{oauthErrorDescription ?? oauthError}</p>
+          <p className="text-muted-foreground">
+            Ask your admin to verify Hub <code className="text-xs">X_REDIRECT_URI</code> matches the X Developer
+            Portal callback URL, then open the invite link again.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!hasData) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>OAuth redirect incomplete</CardTitle>
+          <CardDescription>
+            This page did not receive connection details from Hub.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            If you just authorized on X, Hub may have the wrong{" "}
+            <code className="text-xs">OAUTH_SUCCESS_REDIRECT_URL</code>. It must be exactly:
+          </p>
+          <p className="font-mono text-xs break-all">
+            https://&lt;your-vercel-app&gt;/oauth/success
+          </p>
+          <p>Do not point it at <code className="text-xs">/connect</code> or <code className="text-xs">/login</code>.</p>
+          <p>Ask your admin to fix Hub env, redeploy Hub, and send a new invite link.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

@@ -82,6 +82,30 @@ If install still fails, in Vercel → Project → Settings → General → **Nod
 corepack enable && bun install --frozen-lockfile
 ```
 
+## Troubleshooting X connect
+
+**“I’m already logged into X but it still asks me to connect”** — Normal. Being signed in at x.com is not the same as authorizing this app. The user must open the invite link, tap **Authorize with X**, and approve on X’s screen. Success ends on `/oauth/success` with `@username` shown.
+
+**X OAuth 400 / “not working”** — Usually Hub `X_REDIRECT_URI` is wrong. It must be a full URL, e.g. `https://your-hub.up.railway.app/api/v1/oauth/x/callback`, registered identically in the X Developer Portal. A broken value looks like `https:///api/v1/oauth/x/callback` (missing hostname).
+
+| Check | Where |
+|-------|--------|
+| `X_REDIRECT_URI` | Hub env + X Developer Portal callback |
+| `HUB_PUBLIC_BASE_URL` | Hub env (full Hub URL) |
+| `PUBLIC_HUB_PUBLIC_BASE_URL` | Vercel env (same Hub URL, set at build time) |
+| `OAUTH_SUCCESS_REDIRECT_URL` | Hub env → `https://your-app.vercel.app/oauth/success` |
+
+After Hub env changes, redeploy Hub and create a **new invite** if the old one expired or hit max uses.
+
+**Stuck on `/connect` or `/login` after signing in**
+
+| Symptom | Likely cause |
+|---------|----------------|
+| Login form works but returns to `/login` | `PUBLIC_HUB_API_URL` not set on Vercel (rebuild after adding env) |
+| X authorize succeeds but `/connect` again | `OAUTH_SUCCESS_REDIRECT_URL` wrong — must be `https://<vercel>/oauth/success`, not `/connect` or `/login` |
+| Hub JSON page after X | `OAUTH_SUCCESS_REDIRECT_URL` unset on Hub |
+| Connect shows “max uses” after one success | Normal — use a new invite or confirm connection in admin dashboard |
+
 ## Local end-to-end checklist
 
 1. Start Hub on port **3000** with `OAUTH_SUCCESS_REDIRECT_URL=http://localhost:5173/oauth/success`.
