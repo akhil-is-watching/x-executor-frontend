@@ -52,11 +52,13 @@ test("campaignsApi.create POSTs campaign with bearer token", async () => {
     expect(JSON.parse(String(init?.body))).toEqual({
       targetUsernames: ["alice", "bob"],
       messageText: "Hello",
+      dmsPerHour: 10,
     });
     return jsonResponse({
       id: "camp-1",
       status: "pending",
       totalTargets: 2,
+      dmsPerHour: 10,
       messageText: "Hello",
       targetUsernames: ["alice", "bob"],
       createdAt: "2026-01-01T00:00:00.000Z",
@@ -67,6 +69,7 @@ test("campaignsApi.create POSTs campaign with bearer token", async () => {
   const result = await campaignsApi.create("jwt-test", "org-1", {
     targetUsernames: ["alice", "bob"],
     messageText: "Hello",
+    dmsPerHour: 10,
   });
   expect(result.id).toBe("camp-1");
 });

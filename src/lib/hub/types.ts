@@ -83,12 +83,14 @@ export type CampaignStatus = "pending" | "running" | "completed" | "failed";
 export type CreateCampaignInput = {
   targetUsernames: string[];
   messageText: string;
+  dmsPerHour?: number;
 };
 
 export type CreateCampaignResponse = {
   id: string;
   status: CampaignStatus;
   totalTargets: number;
+  dmsPerHour: number;
   messageText: string;
   targetUsernames: string[];
   createdAt: string;
@@ -101,6 +103,7 @@ export type CampaignStatusResponse = {
   messageText: string;
   targetUsernames: string[];
   totalTargets: number;
+  dmsPerHour: number;
   messagesScheduled: number;
   messagesSent: number;
   repliesReceived: number;
