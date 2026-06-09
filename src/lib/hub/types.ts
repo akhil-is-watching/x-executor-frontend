@@ -3,10 +3,12 @@ export type OrgRole = "owner" | "admin" | "member";
 export type User = {
   id: string;
   email: string;
+  orgId: string;
 };
 
 export type AuthResponse = {
   accessToken: string;
+  user: User;
 };
 
 export type Organization = {
