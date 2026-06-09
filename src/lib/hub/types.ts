@@ -118,3 +118,44 @@ export type CampaignStatusResponse = {
   createdAt: string;
   updatedAt: string;
 };
+
+export type DmMessageDirection = "inbound" | "outbound";
+
+export type ChatLastMessage = {
+  direction: DmMessageDirection;
+  text: string;
+  processedAt: string;
+};
+
+export type ChatConversationSummary = {
+  conversationId: string;
+  recipientId: string;
+  recipientUsername?: string;
+  connectionId: string;
+  xUsername: string;
+  lastMessage: ChatLastMessage;
+  messageCount: number;
+};
+
+export type PaginatedConversationsResponse = {
+  data: ChatConversationSummary[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+export type ChatMessage = {
+  direction: DmMessageDirection;
+  text: string;
+  processedAt: string;
+  recipientId: string;
+  isKnownAnswer: boolean | null;
+};
+
+export type PaginatedMessagesResponse = {
+  data: ChatMessage[];
+  total: number;
+  conversationId: string;
+  page: number;
+  limit: number;
+};

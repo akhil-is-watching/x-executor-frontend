@@ -1,5 +1,5 @@
 import { afterEach, expect, mock, test } from "bun:test";
-import { campaignsApi, connectionsApi } from "./api";
+import { campaignsApi, chatsApi, connectionsApi } from "./api";
 
 const originalFetch = globalThis.fetch;
 
@@ -99,4 +99,66 @@ test("campaignsApi.getStatus GETs campaign status", async () => {
 
   const result = await campaignsApi.getStatus("jwt-test", "org-1", "camp-1");
   expect(result.status).toBe("running");
+});
+
+test("chatsApi.listConversations GETs org chats with pagination", async () => {
+  const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(input)).toContain("/api/v1/orgs/org-1/chats?page=1&limit=20");
+    expect(init?.method).toBeUndefined();
+    return jsonResponse({
+      data: [
+        {
+          conversationId: "3012852462-1345154135381794816",
+          recipientId: "1345154135381794816",
+          connectionId: "conn-1",
+          xUsername: "botuser",
+          lastMessage: {
+            direction: "outbound",
+            text: "Hello there",
+            processedAt: "2026-01-01T00:00:00.000Z",
+          },
+          messageCount: 2,
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+  });
+  globalThis.fetch = fetchMock as typeof fetch;
+
+  const result = await chatsApi.listConversations("jwt-test", "org-1");
+  expect(result.data).toHaveLength(1);
+  expect(result.data[0]?.conversationId).toBe("3012852462-1345154135381794816");
+});
+
+test("chatsApi.getMessages GETs conversation messages", async () => {
+  const fetchMock = mock(async (input: RequestInfo | URL) => {
+    expect(String(input)).toContain(
+      "/api/v1/orgs/org-1/chats/3012852462-1345154135381794816?page=1&limit=50",
+    );
+    return jsonResponse({
+      data: [
+        {
+          direction: "inbound",
+          text: "Hi",
+          processedAt: "2026-01-01T00:00:00.000Z",
+          recipientId: "1345154135381794816",
+          isKnownAnswer: null,
+        },
+      ],
+      total: 1,
+      conversationId: "3012852462-1345154135381794816",
+      page: 1,
+      limit: 50,
+    });
+  });
+  globalThis.fetch = fetchMock as typeof fetch;
+
+  const result = await chatsApi.getMessages(
+    "jwt-test",
+    "org-1",
+    "3012852462-1345154135381794816",
+  );
+  expect(result.data[0]?.direction).toBe("inbound");
 });

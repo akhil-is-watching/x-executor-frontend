@@ -14,6 +14,8 @@ import type {
   CreateCampaignInput,
   CreateCampaignResponse,
   CampaignStatusResponse,
+  PaginatedConversationsResponse,
+  PaginatedMessagesResponse,
 } from "./types";
 
 export const authApi = {
@@ -126,5 +128,34 @@ export const campaignsApi = {
     return hubFetch<CampaignStatusResponse>(`/orgs/${orgId}/campaigns/${campaignId}/status`, {
       token,
     });
+  },
+};
+
+function paginationQuery(page?: number, limit?: number): string {
+  const params = new URLSearchParams();
+  if (page !== undefined) params.set("page", String(page));
+  if (limit !== undefined) params.set("limit", String(limit));
+  const query = params.toString();
+  return query ? `?${query}` : "";
+}
+
+export const chatsApi = {
+  listConversations(token: string, orgId: string, page = 1, limit = 20) {
+    return hubFetch<PaginatedConversationsResponse>(
+      `/orgs/${orgId}/chats${paginationQuery(page, limit)}`,
+      { token },
+    );
+  },
+  getMessages(
+    token: string,
+    orgId: string,
+    conversationId: string,
+    page = 1,
+    limit = 50,
+  ) {
+    return hubFetch<PaginatedMessagesResponse>(
+      `/orgs/${orgId}/chats/${encodeURIComponent(conversationId)}${paginationQuery(page, limit)}`,
+      { token },
+    );
   },
 };
