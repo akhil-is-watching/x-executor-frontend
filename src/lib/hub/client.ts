@@ -8,6 +8,9 @@ export class HubApiError extends Error {
   }
 }
 
+/** Must match Hub `API_GLOBAL_PREFIX` in x-executor/libs/shared/src/api.constants.ts */
+export const HUB_API_PREFIX = "xbot/v1/api";
+
 function apiBase(): string {
   return (import.meta.env.PUBLIC_HUB_API_URL ?? "").replace(/\/$/, "");
 }
@@ -52,7 +55,7 @@ export function validateHubApiUrl(): string | null {
 }
 
 export function oauthStartUrl(inviteToken: string): string {
-  return `${hubPublicBaseUrl()}/api/v1/oauth/x/start?invite=${encodeURIComponent(inviteToken)}`;
+  return `${hubPublicBaseUrl()}/${HUB_API_PREFIX}/oauth/x/start?invite=${encodeURIComponent(inviteToken)}`;
 }
 
 export async function hubFetch<T>(
@@ -60,7 +63,7 @@ export async function hubFetch<T>(
   options: RequestInit & { token?: string } = {},
 ): Promise<T> {
   const { token, headers, ...rest } = options;
-  const res = await fetch(`${apiBase()}/api/v1${path}`, {
+  const res = await fetch(`${apiBase()}/${HUB_API_PREFIX}${path}`, {
     ...rest,
     headers: {
       "Content-Type": "application/json",

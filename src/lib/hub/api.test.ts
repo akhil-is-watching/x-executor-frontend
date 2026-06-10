@@ -16,7 +16,7 @@ function jsonResponse(body: unknown, status = 200) {
 
 test("connectionsApi.setXchatPin PATCHes xchat-pin with bearer token", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toContain("/api/v1/orgs/org-1/connections/conn-1/xchat-pin");
+    expect(String(input)).toContain("/xbot/v1/api/orgs/org-1/connections/conn-1/xchat-pin");
     expect(init?.method).toBe("PATCH");
     expect(init?.headers).toMatchObject({
       Authorization: "Bearer jwt-test",
@@ -34,7 +34,7 @@ test("connectionsApi.setXchatPin PATCHes xchat-pin with bearer token", async () 
 
 test("connectionsApi.setAuthToken PATCHes auth-token with bearer token", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toContain("/api/v1/orgs/org-2/connections/conn-2/auth-token");
+    expect(String(input)).toContain("/xbot/v1/api/orgs/org-2/connections/conn-2/auth-token");
     expect(init?.method).toBe("PATCH");
     expect(JSON.parse(String(init?.body))).toEqual({ authToken: "secret-token" });
     return jsonResponse({ updated: true, hasAuthToken: true });
@@ -47,7 +47,7 @@ test("connectionsApi.setAuthToken PATCHes auth-token with bearer token", async (
 
 test("campaignsApi.create POSTs campaign with bearer token", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toContain("/api/v1/orgs/org-1/campaigns");
+    expect(String(input)).toContain("/xbot/v1/api/orgs/org-1/campaigns");
     expect(init?.method).toBe("POST");
     expect(JSON.parse(String(init?.body))).toEqual({
       targetUsernames: ["alice", "bob"],
@@ -76,7 +76,7 @@ test("campaignsApi.create POSTs campaign with bearer token", async () => {
 
 test("campaignsApi.getStatus GETs campaign status", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toContain("/api/v1/orgs/org-1/campaigns/camp-1/status");
+    expect(String(input)).toContain("/xbot/v1/api/orgs/org-1/campaigns/camp-1/status");
     expect(init?.method).toBeUndefined();
     return jsonResponse({
       id: "camp-1",
@@ -103,7 +103,7 @@ test("campaignsApi.getStatus GETs campaign status", async () => {
 
 test("chatsApi.listConversations GETs org chats with pagination", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
-    expect(String(input)).toContain("/api/v1/orgs/org-1/chats?page=1&limit=20");
+    expect(String(input)).toContain("/xbot/v1/api/orgs/org-1/chats?page=1&limit=20");
     expect(init?.method).toBeUndefined();
     return jsonResponse({
       data: [
@@ -135,7 +135,7 @@ test("chatsApi.listConversations GETs org chats with pagination", async () => {
 test("chatsApi.getMessages GETs conversation messages", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL) => {
     expect(String(input)).toContain(
-      "/api/v1/orgs/org-1/chats/3012852462-1345154135381794816?page=1&limit=50",
+      "/xbot/v1/api/orgs/org-1/chats/3012852462-1345154135381794816?page=1&limit=50",
     );
     return jsonResponse({
       data: [

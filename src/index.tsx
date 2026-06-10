@@ -7,7 +7,7 @@ const port = Number(process.env.PORT ?? 5173);
 const server = serve({
   port,
   routes: {
-    "/api/*": {
+    "/xbot/*": {
       async GET(req) {
         return proxyToHub(req);
       },
