@@ -79,7 +79,9 @@ export function OrgInvitesPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-semibold">Invites</h1>
-        <p className="text-muted-foreground">Share links so X users can connect without a Hub login.</p>
+        <p className="text-muted-foreground">
+          Share connect page links so X users can authorize without a dashboard login.
+        </p>
       </div>
 
       <ErrorAlert error={error} />
@@ -133,6 +135,7 @@ export function OrgInvitesPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
+                <p className="text-xs text-muted-foreground break-all font-mono">{inv.inviteUrl}</p>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
@@ -140,7 +143,7 @@ export function OrgInvitesPage() {
                     onClick={() => copyUrl(inv.inviteUrl, inv.id)}
                   >
                     <Copy className="mr-1 h-3 w-3" />
-                    {copiedId === inv.id ? "Copied!" : "Copy Hub URL"}
+                    {copiedId === inv.id ? "Copied!" : "Copy connect link"}
                   </Button>
                   <Button size="sm" variant="outline" asChild>
                     <Link to={`/connect/${inv.inviteToken}`} target="_blank">
@@ -151,7 +154,6 @@ export function OrgInvitesPage() {
                     Revoke
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground break-all font-mono">{inv.inviteUrl}</p>
               </CardContent>
             </Card>
           ))}
