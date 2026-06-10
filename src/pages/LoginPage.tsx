@@ -38,7 +38,7 @@ export function LoginPage() {
     <Card>
       <CardHeader>
         <CardTitle>Log in</CardTitle>
-        <CardDescription>Access your organizations and X connections.</CardDescription>
+        <CardDescription>Access your organization and X connections.</CardDescription>
       </CardHeader>
       <CardContent>
         <ErrorAlert error={apiConfigError ?? error} />

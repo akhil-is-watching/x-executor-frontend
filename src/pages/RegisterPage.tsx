@@ -39,7 +39,7 @@ export function RegisterPage() {
     <Card>
       <CardHeader>
         <CardTitle>Create account</CardTitle>
-        <CardDescription>Register as an organization owner or admin.</CardDescription>
+        <CardDescription>Create your account, then set up your organization.</CardDescription>
       </CardHeader>
       <CardContent>
         <ErrorAlert error={error} />

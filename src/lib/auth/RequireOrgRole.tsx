@@ -58,7 +58,7 @@ export function RequireOrgRole({
             : "You are not a member of this organization."}
         </p>
         <Link to="/orgs" className="mt-4 inline-block text-primary underline">
-          Back to organizations
+          Back to your organization
         </Link>
       </div>
     );
