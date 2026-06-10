@@ -9,7 +9,7 @@ import { invitesApi } from "@/lib/hub/api";
 import type { Invite } from "@/lib/hub/types";
 import { Copy } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 export function OrgInvitesPage() {
   const { orgId } = useParams<{ orgId: string }>();
@@ -80,7 +80,7 @@ export function OrgInvitesPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold">Invites</h1>
         <p className="text-muted-foreground">
-          Share connect page links so X users can authorize without a dashboard login.
+          Share OAuth links so X users can authorize without a dashboard login.
         </p>
       </div>
 
@@ -143,12 +143,12 @@ export function OrgInvitesPage() {
                     onClick={() => copyUrl(inv.inviteUrl, inv.id)}
                   >
                     <Copy className="mr-1 h-3 w-3" />
-                    {copiedId === inv.id ? "Copied!" : "Copy connect link"}
+                    {copiedId === inv.id ? "Copied!" : "Copy OAuth link"}
                   </Button>
                   <Button size="sm" variant="outline" asChild>
-                    <Link to={`/connect/${inv.inviteToken}`} target="_blank">
-                      Open connect page
-                    </Link>
+                    <a href={inv.inviteUrl} target="_blank" rel="noopener noreferrer">
+                      Open OAuth link
+                    </a>
                   </Button>
                   <Button size="sm" variant="destructive" onClick={() => handleRevoke(inv.id)}>
                     Revoke
