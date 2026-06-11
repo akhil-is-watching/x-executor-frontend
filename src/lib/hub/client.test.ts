@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { HUB_API_PREFIX, HubApiError, oauthStartUrl } from "./client";
+import { HUB_BACKEND_API_PREFIX, HubApiError, oauthStartUrl } from "./client";
 
 test("HubApiError carries status", () => {
   const err = new HubApiError("Unauthorized", 401);
@@ -10,6 +10,6 @@ test("HubApiError carries status", () => {
 
 test("oauthStartUrl uses xbot API prefix", () => {
   expect(oauthStartUrl("invite-token")).toContain(
-    `/${HUB_API_PREFIX}/oauth/x/start?invite=invite-token`,
+    `/${HUB_BACKEND_API_PREFIX}/oauth/x/start?invite=invite-token`,
   );
 });
