@@ -75,6 +75,17 @@ export type UpdatePromptInput = {
   unknownReply?: string;
 };
 
+export type ChatTestInput = {
+  userMessage: string;
+  systemPrompt?: string;
+  unknownReply?: string;
+};
+
+export type ChatTestResponse = {
+  reply: string;
+  isKnownAnswer: boolean;
+};
+
 export type CreateOrgInput = {
   name: string;
   slug?: string;

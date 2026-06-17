@@ -1,5 +1,5 @@
 import { afterEach, expect, mock, test } from "bun:test";
-import { campaignsApi, chatsApi, connectionsApi } from "./api";
+import { campaignsApi, chatsApi, connectionsApi, orgsApi } from "./api";
 
 const originalFetch = globalThis.fetch;
 
@@ -206,4 +206,34 @@ test("chatsApi.getMessages GETs conversation messages", async () => {
     "3012852462-1345154135381794816",
   );
   expect(result.data[0]?.direction).toBe("inbound");
+});
+
+test("orgsApi.testChat POSTs chat test with bearer token", async () => {
+  const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/chat/test");
+    expect(init?.method).toBe("POST");
+    expect(init?.headers).toMatchObject({
+      Authorization: "Bearer jwt-test",
+      "Content-Type": "application/json",
+    });
+    expect(JSON.parse(String(init?.body))).toEqual({
+      userMessage: "Which chains?",
+      systemPrompt: "Noah supports Solana.",
+    });
+    return jsonResponse({
+      reply: "Noah supports Solana and Irys.",
+      isKnownAnswer: true,
+    });
+  });
+  globalThis.fetch = fetchMock as typeof fetch;
+
+  const result = await orgsApi.testChat("jwt-test", "org-1", {
+    userMessage: "Which chains?",
+    systemPrompt: "Noah supports Solana.",
+  });
+
+  expect(result).toEqual({
+    reply: "Noah supports Solana and Irys.",
+    isKnownAnswer: true,
+  });
 });

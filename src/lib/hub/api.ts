@@ -10,6 +10,8 @@ import type {
   Organization,
   OrganizationWithRole,
   UpdatePromptInput,
+  ChatTestInput,
+  ChatTestResponse,
   User,
   CreateCampaignInput,
   CreateCampaignResponse,
@@ -61,6 +63,13 @@ export const orgsApi = {
   },
   members(token: string, orgId: string) {
     return hubFetch<Member[]>(`/orgs/${orgId}/members`, { token });
+  },
+  testChat(token: string, orgId: string, input: ChatTestInput) {
+    return hubFetch<ChatTestResponse>(`/orgs/${orgId}/chat/test`, {
+      method: "POST",
+      token,
+      body: JSON.stringify(input),
+    });
   },
 };
 
