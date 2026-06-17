@@ -41,7 +41,7 @@ export function OrgSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Organization prompts</CardTitle>
-          <CardDescription>System prompt and fallback reply for DM automation.</CardDescription>
+          <CardDescription>System prompt for DM automation.</CardDescription>
         </CardHeader>
         <CardContent>
           {token && orgId && (
@@ -49,7 +49,6 @@ export function OrgSettingsPage() {
               token={token}
               orgId={orgId}
               initialSystemPrompt={org?.systemPrompt ?? ""}
-              initialUnknownReply={org?.unknownReply ?? ""}
               onSaved={setOrg}
             />
           )}

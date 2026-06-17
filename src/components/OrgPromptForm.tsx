@@ -10,7 +10,6 @@ type OrgPromptFormProps = {
   token: string;
   orgId: string;
   initialSystemPrompt?: string;
-  initialUnknownReply?: string;
   onSaved?: (org: Organization) => void;
   compact?: boolean;
 };
@@ -19,20 +18,17 @@ export function OrgPromptForm({
   token,
   orgId,
   initialSystemPrompt = "",
-  initialUnknownReply = "",
   onSaved,
   compact = false,
 }: OrgPromptFormProps) {
   const [systemPrompt, setSystemPrompt] = useState(initialSystemPrompt);
-  const [unknownReply, setUnknownReply] = useState(initialUnknownReply);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     setSystemPrompt(initialSystemPrompt);
-    setUnknownReply(initialUnknownReply);
-  }, [initialSystemPrompt, initialUnknownReply]);
+  }, [initialSystemPrompt]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -40,9 +36,9 @@ export function OrgPromptForm({
     setSuccess(null);
     setSaving(true);
     try {
-      const updated = await orgsApi.updatePrompt(token, orgId, { systemPrompt, unknownReply });
+      const updated = await orgsApi.updatePrompt(token, orgId, { systemPrompt });
       onSaved?.(updated);
-      setSuccess("Prompts saved.");
+      setSuccess("Prompt saved.");
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -51,7 +47,6 @@ export function OrgPromptForm({
   }
 
   const promptRows = compact ? 4 : 6;
-  const unknownRows = compact ? 2 : 3;
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
@@ -67,24 +62,12 @@ export function OrgPromptForm({
           placeholder="You are a helpful assistant for this brand. Answer DMs using only the facts below..."
         />
         <p className="text-xs text-muted-foreground">
-          Used by the processor when replying to inbound DMs. Leave empty to skip automated replies.
-        </p>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="unknownReply">Unknown reply</Label>
-        <Textarea
-          id="unknownReply"
-          rows={unknownRows}
-          value={unknownReply}
-          onChange={e => setUnknownReply(e.target.value)}
-          placeholder="I don't have that information. Please contact support."
-        />
-        <p className="text-xs text-muted-foreground">
-          Sent when the model cannot answer from the system prompt.
+          Used by the processor when replying to inbound DMs. Include instructions for out-of-scope
+          questions in this prompt. Leave empty to skip automated replies.
         </p>
       </div>
       <Button type="submit" disabled={saving} className="w-fit">
-        {saving ? "Saving…" : "Save prompts"}
+        {saving ? "Saving…" : "Save prompt"}
       </Button>
     </form>
   );

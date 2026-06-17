@@ -104,7 +104,6 @@ export function OrgDashboardPage() {
               token={token}
               orgId={orgId}
               initialSystemPrompt={org?.systemPrompt ?? ""}
-              initialUnknownReply={org?.unknownReply ?? ""}
               onSaved={setOrg}
               compact
             />

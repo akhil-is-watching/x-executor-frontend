@@ -16,7 +16,6 @@ export type Organization = {
   name: string;
   slug?: string;
   systemPrompt?: string;
-  unknownReply?: string;
   createdBy: string;
   createdAt?: string;
 };
@@ -72,13 +71,11 @@ export type CreateInviteInput = {
 
 export type UpdatePromptInput = {
   systemPrompt?: string;
-  unknownReply?: string;
 };
 
 export type ChatTestInput = {
   userMessage: string;
   systemPrompt?: string;
-  unknownReply?: string;
 };
 
 export type ChatTestResponse = {
