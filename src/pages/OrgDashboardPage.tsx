@@ -107,6 +107,8 @@ export function OrgDashboardPage() {
               orgId={orgId}
               publishedPrompt={org?.systemPrompt ?? ""}
               initialDraft={org?.draftSystemPrompt ?? org?.systemPrompt ?? ""}
+              publishedModel={org?.llmModel}
+              initialDraftModel={org?.draftLlmModel ?? org?.llmModel}
               hasUnpublishedDraft={org?.hasUnpublishedDraft}
               promptPublishedAt={org?.promptPublishedAt}
               onUpdated={setOrg}

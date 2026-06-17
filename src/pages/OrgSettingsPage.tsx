@@ -41,7 +41,9 @@ export function OrgSettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Organization prompts</CardTitle>
-          <CardDescription>Draft, test, and publish the system prompt for DM automation.</CardDescription>
+          <CardDescription>
+            Draft, test, and publish the system prompt and LLM model for DM automation.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {token && orgId && (
@@ -50,6 +52,8 @@ export function OrgSettingsPage() {
               orgId={orgId}
               publishedPrompt={org?.systemPrompt ?? ""}
               initialDraft={org?.draftSystemPrompt ?? org?.systemPrompt ?? ""}
+              publishedModel={org?.llmModel}
+              initialDraftModel={org?.draftLlmModel ?? org?.llmModel}
               hasUnpublishedDraft={org?.hasUnpublishedDraft}
               promptPublishedAt={org?.promptPublishedAt}
               onUpdated={setOrg}

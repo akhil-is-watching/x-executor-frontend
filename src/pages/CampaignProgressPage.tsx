@@ -233,6 +233,9 @@ export function CampaignProgressPage() {
           <CardTitle className="text-lg">Delivery</CardTitle>
           <CardDescription>
             {processed} of {campaign.totalTargets} processed
+            {campaign.accountsToUse
+              ? ` · sending from ${campaign.accountsToUse} account(s)`
+              : ""}
             {eta && isCampaignActive(campaign.status) ? ` · ${eta}` : ""}
           </CardDescription>
         </CardHeader>

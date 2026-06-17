@@ -12,6 +12,7 @@ import type {
   UpdatePromptInput,
   ChatTestInput,
   ChatTestResponse,
+  LlmModelOption,
   User,
   CreateCampaignInput,
   CreateCampaignResponse,
@@ -83,6 +84,9 @@ export const orgsApi = {
       token,
       body: JSON.stringify(input),
     });
+  },
+  listLlmModels(token: string, orgId: string) {
+    return hubFetch<LlmModelOption[]>(`/orgs/${orgId}/llm/models`, { token });
   },
 };
 

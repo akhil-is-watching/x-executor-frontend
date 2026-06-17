@@ -95,6 +95,7 @@ test("campaignsApi.create POSTs campaign with bearer token", async () => {
       targetUsernames: ["alice", "bob"],
       messageText: "Hello",
       dmsPerHour: 10,
+      accountsToUse: 2,
     });
     return jsonResponse({
       id: "camp-1",
@@ -102,6 +103,7 @@ test("campaignsApi.create POSTs campaign with bearer token", async () => {
       status: "pending",
       totalTargets: 2,
       dmsPerHour: 10,
+      accountsToUse: 2,
       messageText: "Hello",
       targetUsernames: ["alice", "bob"],
       createdAt: "2026-01-01T00:00:00.000Z",
@@ -114,6 +116,7 @@ test("campaignsApi.create POSTs campaign with bearer token", async () => {
     targetUsernames: ["alice", "bob"],
     messageText: "Hello",
     dmsPerHour: 10,
+    accountsToUse: 2,
   });
   expect(result.id).toBe("camp-1");
 });
@@ -328,4 +331,21 @@ test("orgsApi.discardDraft POSTs prompt discard", async () => {
   globalThis.fetch = fetchMock as typeof fetch;
 
   await orgsApi.discardDraft("jwt-test", "org-1");
+});
+
+test("orgsApi.listLlmModels GETs OpenRouter model catalog", async () => {
+  const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(input)).toContain("/xbot/v1/api/hub/orgs/org-1/llm/models");
+    expect(init?.method).toBeUndefined();
+    return jsonResponse([
+      {
+        id: "google/gemini-3.5-flash",
+        name: "Google: Gemini 3.5 Flash",
+      },
+    ]);
+  });
+  globalThis.fetch = fetchMock as typeof fetch;
+
+  const result = await orgsApi.listLlmModels("jwt-test", "org-1");
+  expect(result[0]?.id).toBe("google/gemini-3.5-flash");
 });

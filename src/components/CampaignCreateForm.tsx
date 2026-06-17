@@ -29,20 +29,29 @@ export function CampaignCreateForm({ token, orgId, connections, onCreated }: Cam
   const [targetsRaw, setTargetsRaw] = useState("");
   const [messageText, setMessageText] = useState("");
   const [dmsPerHour, setDmsPerHour] = useState<string>("15");
+  const [accountsToUse, setAccountsToUse] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const parsedTargets = parseTargetUsernames(targetsRaw);
-  const authTokenCount = connections.filter(c => c.hasAuthToken).length;
+  const eligibleConnections = connections.filter(c => c.hasAuthToken);
+  const authTokenCount = eligibleConnections.length;
   const hasAuthToken = authTokenCount > 0;
   const selectedRate = Number.parseInt(dmsPerHour, 10);
+  const selectedAccountCount = Number.parseInt(
+    accountsToUse || String(authTokenCount),
+    10,
+  );
   const canSubmit =
     name.trim().length > 0 &&
     parsedTargets.length > 0 &&
     messageText.trim().length > 0 &&
     hasAuthToken &&
     !submitting &&
-    Number.isFinite(selectedRate);
+    Number.isFinite(selectedRate) &&
+    Number.isFinite(selectedAccountCount) &&
+    selectedAccountCount >= 1 &&
+    selectedAccountCount <= authTokenCount;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -55,6 +64,7 @@ export function CampaignCreateForm({ token, orgId, connections, onCreated }: Cam
         targetUsernames: parsedTargets,
         messageText: messageText.trim(),
         dmsPerHour: selectedRate,
+        accountsToUse: selectedAccountCount,
       });
       onCreated(result.id);
     } catch (err) {
@@ -108,6 +118,41 @@ export function CampaignCreateForm({ token, orgId, connections, onCreated }: Cam
       </div>
 
       <div className="space-y-2">
+        <Label htmlFor="accountsToUse">Accounts to use</Label>
+        <Select
+          value={accountsToUse || String(authTokenCount)}
+          onValueChange={setAccountsToUse}
+          disabled={!hasAuthToken}
+        >
+          <SelectTrigger id="accountsToUse" className="max-w-xs">
+            <SelectValue placeholder="Select account count" />
+          </SelectTrigger>
+          <SelectContent>
+            {Array.from({ length: authTokenCount }, (_, index) => index + 1).map(
+              count => (
+                <SelectItem key={count} value={String(count)}>
+                  {count === authTokenCount
+                    ? `All ${count} account(s)`
+                    : `${count} account${count === 1 ? "" : "s"}`}
+                </SelectItem>
+              ),
+            )}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          {hasAuthToken ? (
+            <>
+              Eligible senders:{" "}
+              {eligibleConnections.map(c => `@${c.xUsername}`).join(", ")}. The
+              least-loaded accounts are chosen at launch.
+            </>
+          ) : (
+            "Connect at least one account with an auth token before launching."
+          )}
+        </p>
+      </div>
+
+      <div className="space-y-2">
         <Label htmlFor="dmsPerHour">Send rate (per account)</Label>
         <Select value={dmsPerHour} onValueChange={setDmsPerHour}>
           <SelectTrigger id="dmsPerHour" className="max-w-xs">
@@ -124,9 +169,9 @@ export function CampaignCreateForm({ token, orgId, connections, onCreated }: Cam
         <p className="text-xs text-muted-foreground">
           Estimated org throughput:{" "}
           <span className="text-foreground">
-            {selectedRate * authTokenCount} DMs / hour
+            {selectedRate * selectedAccountCount} DMs / hour
           </span>{" "}
-          across {authTokenCount} account(s) with auth tokens.
+          across {selectedAccountCount} account(s).
         </p>
       </div>
 

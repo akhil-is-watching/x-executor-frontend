@@ -11,9 +11,15 @@ type OrgPromptChatTestProps = {
   token: string;
   orgId: string;
   systemPrompt: string;
+  llmModel: string;
 };
 
-export function OrgPromptChatTest({ token, orgId, systemPrompt }: OrgPromptChatTestProps) {
+export function OrgPromptChatTest({
+  token,
+  orgId,
+  systemPrompt,
+  llmModel,
+}: OrgPromptChatTestProps) {
   const [userMessage, setUserMessage] = useState("");
   const [testing, setTesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,6 +38,7 @@ export function OrgPromptChatTest({ token, orgId, systemPrompt }: OrgPromptChatT
       const response = await orgsApi.testChat(token, orgId, {
         userMessage: userMessage.trim(),
         systemPrompt: promptTrimmed,
+        llmModel,
       });
       setResult(response);
     } catch (err) {
@@ -47,7 +54,7 @@ export function OrgPromptChatTest({ token, orgId, systemPrompt }: OrgPromptChatT
       <div>
         <p className="text-sm font-medium text-foreground">Test prompt</p>
         <p className="text-xs text-muted-foreground mt-1">
-          Send a sample DM question using the draft prompt above (unsaved or saved draft).
+          Send a sample DM question using the draft prompt and model above (unsaved or saved draft).
         </p>
       </div>
 

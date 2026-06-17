@@ -19,6 +19,8 @@ export type Organization = {
   draftSystemPrompt?: string;
   hasUnpublishedDraft?: boolean;
   promptPublishedAt?: string;
+  llmModel?: string;
+  draftLlmModel?: string;
   createdBy: string;
   createdAt?: string;
 };
@@ -74,11 +76,20 @@ export type CreateInviteInput = {
 
 export type UpdatePromptInput = {
   systemPrompt?: string;
+  llmModel?: string;
+};
+
+export type LlmModelOption = {
+  id: string;
+  name: string;
+  description?: string;
+  contextLength?: number;
 };
 
 export type ChatTestInput = {
   userMessage: string;
   systemPrompt?: string;
+  llmModel?: string;
 };
 
 export type ChatTestResponse = {
@@ -104,6 +115,7 @@ export type CreateCampaignInput = {
   targetUsernames: string[];
   messageText: string;
   dmsPerHour?: number;
+  accountsToUse?: number;
 };
 
 export type CreateCampaignResponse = {
@@ -112,6 +124,7 @@ export type CreateCampaignResponse = {
   status: CampaignStatus;
   totalTargets: number;
   dmsPerHour: number;
+  accountsToUse?: number;
   messageText: string;
   targetUsernames: string[];
   createdAt: string;
@@ -144,6 +157,7 @@ export type CampaignStatusResponse = {
   targetUsernames: string[];
   totalTargets: number;
   dmsPerHour: number;
+  accountsToUse?: number;
   messagesScheduled: number;
   messagesSent: number;
   repliesReceived: number;

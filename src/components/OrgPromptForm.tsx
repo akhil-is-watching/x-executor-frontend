@@ -2,17 +2,28 @@ import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { orgsApi } from "@/lib/hub/api";
-import type { Organization } from "@/lib/hub/types";
+import type { LlmModelOption, Organization } from "@/lib/hub/types";
 import { OrgPromptChatTest } from "@/components/OrgPromptChatTest";
 import { useEffect, useState, type FormEvent } from "react";
+
+export const DEFAULT_LLM_MODEL = "google/gemini-3.5-flash";
 
 type OrgPromptFormProps = {
   token: string;
   orgId: string;
   publishedPrompt?: string;
   initialDraft?: string;
+  publishedModel?: string;
+  initialDraftModel?: string;
   hasUnpublishedDraft?: boolean;
   promptPublishedAt?: string;
   onUpdated?: (org: Organization) => void;
@@ -24,6 +35,8 @@ export function OrgPromptForm({
   orgId,
   publishedPrompt = "",
   initialDraft = "",
+  publishedModel = DEFAULT_LLM_MODEL,
+  initialDraftModel = DEFAULT_LLM_MODEL,
   hasUnpublishedDraft = false,
   promptPublishedAt,
   onUpdated,
@@ -32,8 +45,14 @@ export function OrgPromptForm({
   const [draftText, setDraftText] = useState(initialDraft);
   const [savedDraft, setSavedDraft] = useState(initialDraft);
   const [published, setPublished] = useState(publishedPrompt);
+  const [draftModel, setDraftModel] = useState(initialDraftModel);
+  const [savedDraftModel, setSavedDraftModel] = useState(initialDraftModel);
+  const [publishedModelState, setPublishedModelState] = useState(publishedModel);
   const [serverUnpublished, setServerUnpublished] = useState(hasUnpublishedDraft);
   const [publishedAt, setPublishedAt] = useState(promptPublishedAt);
+  const [models, setModels] = useState<LlmModelOption[]>([]);
+  const [modelsError, setModelsError] = useState<string | null>(null);
+  const [loadingModels, setLoadingModels] = useState(true);
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [discarding, setDiscarding] = useState(false);
@@ -44,21 +63,70 @@ export function OrgPromptForm({
     setDraftText(initialDraft);
     setSavedDraft(initialDraft);
     setPublished(publishedPrompt);
+    setDraftModel(initialDraftModel);
+    setSavedDraftModel(initialDraftModel);
+    setPublishedModelState(publishedModel);
     setServerUnpublished(hasUnpublishedDraft);
     setPublishedAt(promptPublishedAt);
-  }, [initialDraft, publishedPrompt, hasUnpublishedDraft, promptPublishedAt]);
+  }, [
+    initialDraft,
+    publishedPrompt,
+    initialDraftModel,
+    publishedModel,
+    hasUnpublishedDraft,
+    promptPublishedAt,
+  ]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadingModels(true);
+    setModelsError(null);
+    orgsApi
+      .listLlmModels(token, orgId)
+      .then(result => {
+        if (!cancelled) {
+          setModels(result);
+        }
+      })
+      .catch(err => {
+        if (!cancelled) {
+          setModelsError(errorMessage(err));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingModels(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token, orgId]);
 
   function applyOrgUpdate(org: Organization) {
     const nextDraft = org.draftSystemPrompt ?? org.systemPrompt ?? "";
+    const nextDraftModel = org.draftLlmModel ?? org.llmModel ?? DEFAULT_LLM_MODEL;
     setDraftText(nextDraft);
     setSavedDraft(nextDraft);
     setPublished(org.systemPrompt ?? "");
+    setDraftModel(nextDraftModel);
+    setSavedDraftModel(nextDraftModel);
+    setPublishedModelState(org.llmModel ?? DEFAULT_LLM_MODEL);
     setServerUnpublished(org.hasUnpublishedDraft ?? false);
     setPublishedAt(org.promptPublishedAt);
     onUpdated?.(org);
   }
 
-  const hasLocalChanges = draftText.trim() !== savedDraft.trim();
+  const modelOptions =
+    models.length > 0
+      ? models
+      : [{ id: draftModel, name: draftModel }, { id: DEFAULT_LLM_MODEL, name: "Gemini 3.5 Flash" }];
+
+  const selectedModelLabel =
+    modelOptions.find(option => option.id === draftModel)?.name ?? draftModel;
+
+  const hasLocalChanges =
+    draftText.trim() !== savedDraft.trim() || draftModel !== savedDraftModel;
   const isPublished = published.trim().length > 0;
   const canPublish = !hasLocalChanges && serverUnpublished && !saving && !publishing;
   const canDiscard =
@@ -75,7 +143,10 @@ export function OrgPromptForm({
     setSuccess(null);
     setSaving(true);
     try {
-      const updated = await orgsApi.updatePrompt(token, orgId, { systemPrompt: draftText });
+      const updated = await orgsApi.updatePrompt(token, orgId, {
+        systemPrompt: draftText,
+        llmModel: draftModel,
+      });
       applyOrgUpdate(updated);
       setSuccess("Draft saved.");
     } catch (err) {
@@ -92,7 +163,7 @@ export function OrgPromptForm({
     try {
       const updated = await orgsApi.publishPrompt(token, orgId);
       applyOrgUpdate(updated);
-      setSuccess("Prompt published to production.");
+      setSuccess("Prompt and model published to production.");
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -139,7 +210,29 @@ export function OrgPromptForm({
 
       <form onSubmit={onSaveDraft} className="flex flex-col gap-4">
         <ErrorAlert error={error} />
+        <ErrorAlert error={modelsError} />
         {success && <p className="text-sm text-green-600 dark:text-green-400">{success}</p>}
+
+        <div className="space-y-2">
+          <Label htmlFor="llmModel">LLM model (draft)</Label>
+          <Select value={draftModel} onValueChange={setDraftModel} disabled={loadingModels || busy}>
+            <SelectTrigger id="llmModel" className="max-w-xl">
+              <SelectValue placeholder={loadingModels ? "Loading models…" : "Select model"} />
+            </SelectTrigger>
+            <SelectContent className="max-h-72">
+              {modelOptions.map(option => (
+                <SelectItem key={option.id} value={option.id}>
+                  {option.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Live model: <span className="text-foreground">{publishedModelState}</span>. Selected
+            draft: <span className="text-foreground">{selectedModelLabel}</span>. Models are loaded
+            from OpenRouter.
+          </p>
+        </div>
 
         <div className="space-y-2">
           <Label htmlFor="systemPrompt">System prompt (draft)</Label>
@@ -151,8 +244,8 @@ export function OrgPromptForm({
             placeholder="You are a helpful assistant for this brand. Answer DMs using only the facts below..."
           />
           <p className="text-xs text-muted-foreground">
-            Edits stay in draft until you publish. Only the published prompt is used for live inbound
-            DM replies. Include out-of-scope instructions in the prompt itself.
+            Edits stay in draft until you publish. Only the published prompt and model are used for
+            live inbound DM replies.
           </p>
         </div>
 
@@ -180,7 +273,12 @@ export function OrgPromptForm({
         )}
       </form>
 
-      <OrgPromptChatTest token={token} orgId={orgId} systemPrompt={draftText} />
+      <OrgPromptChatTest
+        token={token}
+        orgId={orgId}
+        systemPrompt={draftText}
+        llmModel={draftModel}
+      />
     </div>
   );
 }
