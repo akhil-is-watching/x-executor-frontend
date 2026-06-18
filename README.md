@@ -9,10 +9,10 @@ See also [CREATE_AND_INTEGRATE_FRONTEND.md](../x-executor/docs/CREATE_AND_INTEGR
 1. **Hub** + MongoDB + Redis (see [railway.md](../x-executor/docs/railway.md)).
 2. **X Developer App** with **OAuth 1.0a** (Consumer Keys), **Read, Write, and Direct Messages**, and **Account Activity API** access.
 3. Hub callback URL (exact match in X Developer Portal):
-   - Local: `http://localhost:3000/api/v1/oauth/x/callback`
-   - Production: `https://<hub-domain>/api/v1/oauth/x/callback`
+   - Local: `http://localhost:3000/api/hub/oauth/x/callback`
+   - Production: `https://<hub-domain>/api/hub/oauth/x/callback`
 
-The browser calls Hub JSON APIs at **`/api/hub/*`** (dev proxy and optional Vercel rewrite → Hub `/api/v1/*`). OAuth start still hits Hub directly via `PUBLIC_HUB_PUBLIC_BASE_URL`.
+Hub JSON APIs live at **`/api/hub/*`** (e.g. `POST /api/hub/auth/login`, `POST /api/hub/auth/register`). Locally the Bun dev server proxies same-origin `/api/hub/*` to Hub on port 3000.
 
 ## Environment
 
@@ -21,8 +21,8 @@ Copy `.env.example` to `.env`:
 | Variable | Example | Purpose |
 |----------|---------|---------|
 | `PORT` | `5173` | Dev server (Hub uses 3000) |
-| `HUB_API_URL` | `http://localhost:3000` | Dev proxy: `/api/hub/*` → Hub `/api/v1/*` |
-| `PUBLIC_HUB_API_URL` | *(empty locally)* | If set (Hub URL), client calls Hub `/api/v1` directly (CORS). If empty, client uses `/api/hub` |
+| `HUB_API_URL` | `http://localhost:3000` | Dev proxy: `/api/hub/*` → Hub `/api/hub/*` |
+| `PUBLIC_HUB_API_URL` | *(empty locally)* | If set (Hub URL), client calls `https://hub…/api/hub/*` directly (CORS). If empty, same-origin `/api/hub` |
 | `PUBLIC_HUB_PUBLIC_BASE_URL` | `http://localhost:3000` | OAuth start links (Hub origin) |
 
 **Hub** (`.env` in `x-executor`):
@@ -33,7 +33,7 @@ HUB_PUBLIC_BASE_URL=http://localhost:3000
 WEBHOOK_PUBLIC_BASE_URL=http://localhost:3001
 X_API_KEY=...
 X_API_KEY_SECRET=...
-X_REDIRECT_URI=http://localhost:3000/api/v1/oauth/x/callback
+X_REDIRECT_URI=http://localhost:3000/api/hub/oauth/x/callback
 X_REGISTER_WEBHOOKS_WITH_X=true
 ```
 
@@ -103,7 +103,7 @@ PUBLIC_HUB_PUBLIC_BASE_URL=https://your-hub.up.railway.app
 **Option B — Same-origin `/api/hub` (Vercel rewrite before SPA fallback):**
 
 ```json
-{ "source": "/api/hub/:path*", "destination": "https://your-hub.up.railway.app/api/v1/:path*" }
+{ "source": "/api/hub/:path*", "destination": "https://your-hub.up.railway.app/api/hub/:path*" }
 ```
 
 Leave `PUBLIC_HUB_API_URL` empty at build time.

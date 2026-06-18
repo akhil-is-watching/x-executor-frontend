@@ -1,2 +1,2 @@
-/** Browser-facing Hub API base path (dev proxy + Vercel rewrite map to Hub `/api/v1`). */
+/** Hub API base path (same on Hub server and browser). */
 export const API_PREFIX = "/api/hub";
