@@ -187,7 +187,6 @@ export function OrgPromptForm({
   const canDiscard =
     !hasLocalChanges && serverUnpublished && !saving && !publishing && !discarding;
   const busy = saving || publishing || discarding;
-  const showGoalDetails = draftGoals.types.length > 0;
 
   async function onSaveDraft(e: FormEvent) {
     e.preventDefault();
@@ -278,23 +277,16 @@ export function OrgPromptForm({
         <ErrorAlert error={modelsError} />
         {success && <p className="text-sm text-green-600 dark:text-green-400">{success}</p>}
 
-        <div className="space-y-2">
-          <Label htmlFor="systemPrompt">System prompt (draft)</Label>
-          <Textarea
-            id="systemPrompt"
-            rows={promptRows}
-            value={draftSystemPrompt}
-            onChange={e => setDraftSystemPrompt(e.target.value)}
-            placeholder="You are a helpful assistant for this brand. Answer DMs using only the facts below..."
-          />
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-foreground">Conversation goal</p>
           <p className="text-xs text-muted-foreground">
-            Knowledge and instructions the bot can use for factual answers. Works together with
-            conversation goals below.
+            Define what you want your AI to accomplish in conversations. The AI will naturally steer
+            DMs toward this goal.
           </p>
         </div>
 
         <div className="space-y-2">
-          <Label>Goal types</Label>
+          <Label>Goal type</Label>
           <div className="flex flex-wrap gap-2">
             {GOAL_TYPE_OPTIONS.map(option => (
               <Button
@@ -314,59 +306,71 @@ export function OrgPromptForm({
               </Button>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">Select one or more outcomes to steer toward.</p>
+          <p className="text-xs text-muted-foreground">
+            Pick the main outcome you&apos;re after. This tailors the suggestions below.
+          </p>
         </div>
 
-        {showGoalDetails && (
-          <>
-            <div className="space-y-2">
-              <Label htmlFor="goalDetails">Goal details</Label>
-              <Textarea
-                id="goalDetails"
-                rows={detailsRows}
-                value={draftGoals.details}
-                onChange={e =>
-                  setDraftGoals(current => ({ ...current, details: e.target.value }))
-                }
-                placeholder="Steer conversations toward joining our Discord. Mention the community vibe and invite link when it feels natural."
-              />
-              <p className="text-xs text-muted-foreground">
-                Shared approach for all selected goals. The bot uses this with your goal types to
-                steer DM replies.
-              </p>
-            </div>
+        <div className="space-y-2">
+          <Label htmlFor="goalDetails">Goal details</Label>
+          <Textarea
+            id="goalDetails"
+            rows={detailsRows}
+            value={draftGoals.details}
+            onChange={e => setDraftGoals(current => ({ ...current, details: e.target.value }))}
+            placeholder="Get the user to join our Discord. Build rapport first, then bring it up naturally once they seem interested. Don't push it in the first message."
+          />
+          <p className="text-xs text-muted-foreground">
+            Tell the AI how to approach this — tone, timing, and what to do when someone shows
+            interest.
+          </p>
+        </div>
 
-            <div className="space-y-2 max-w-xl">
-              <div className="flex items-center justify-between gap-2">
-                <Label htmlFor="directness">Directness</Label>
-                <span className="text-xs text-muted-foreground">
-                  {directnessLabel(draftGoals.directness)} ({draftGoals.directness})
-                </span>
-              </div>
-              <input
-                id="directness"
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={draftGoals.directness}
-                disabled={busy}
-                onChange={e =>
-                  setDraftGoals(current => ({
-                    ...current,
-                    directness: Number(e.target.value),
-                  }))
-                }
-                className="w-full accent-primary"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Subtle</span>
-                <span>Balanced</span>
-                <span>Direct</span>
-              </div>
-            </div>
-          </>
-        )}
+        <div className="space-y-2 max-w-xl">
+          <div className="space-y-1">
+            <Label htmlFor="directness">How direct should the AI be?</Label>
+            <p className="text-xs text-muted-foreground">
+              Controls whether the AI mentions the goal casually or pushes harder toward it.
+            </p>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs text-muted-foreground">Subtle</span>
+            <span className="text-xs font-medium text-primary">
+              {directnessLabel(draftGoals.directness)}
+            </span>
+            <span className="text-xs text-muted-foreground">Direct</span>
+          </div>
+          <input
+            id="directness"
+            type="range"
+            min={0}
+            max={100}
+            step={1}
+            value={draftGoals.directness}
+            disabled={busy}
+            onChange={e =>
+              setDraftGoals(current => ({
+                ...current,
+                directness: Number(e.target.value),
+              }))
+            }
+            className="w-full accent-primary"
+          />
+        </div>
+
+        <div className="space-y-2 border-t border-border pt-4">
+          <Label htmlFor="systemPrompt">System prompt (draft)</Label>
+          <Textarea
+            id="systemPrompt"
+            rows={promptRows}
+            value={draftSystemPrompt}
+            onChange={e => setDraftSystemPrompt(e.target.value)}
+            placeholder="You are a helpful assistant for this brand. Answer DMs using only the facts below..."
+          />
+          <p className="text-xs text-muted-foreground">
+            Optional knowledge for factual answers. Saved with goals via the same draft endpoint.
+          </p>
+        </div>
 
         <div className="space-y-2">
           <Label htmlFor="llmModel">LLM model (draft)</Label>

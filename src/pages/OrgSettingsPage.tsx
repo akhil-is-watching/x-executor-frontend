@@ -37,10 +37,10 @@ export function OrgSettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Reply settings</CardTitle>
+          <CardTitle className="text-lg">Conversation goal</CardTitle>
           <CardDescription>
-            Configure system prompt knowledge, conversation goals, and directness for inbound DM
-            automation.
+            Configure goal type, details, directness, and optional system prompt for inbound DM
+            replies.
           </CardDescription>
         </CardHeader>
         <CardContent>
