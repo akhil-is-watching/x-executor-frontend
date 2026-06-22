@@ -84,6 +84,50 @@ test("campaignsApi.create POSTs campaign with bearer token", async () => {
   expect(result.id).toBe("camp-1");
 });
 
+test("campaignsApi.create POSTs follower campaign with schedule", async () => {
+  const fetchMock = mock(async (_input: RequestInfo | URL, init?: RequestInit) => {
+    const body = JSON.parse(String(init?.body));
+    expect(body.audienceType).toBe("followers");
+    expect(body.targetUsername).toBe("alice");
+    expect(body.timezone).toBe("UTC");
+    expect(body.schedule).toHaveLength(1);
+    return jsonResponse({ id: "camp-2", name: "Followers", status: "syncing" });
+  });
+  globalThis.fetch = fetchMock as typeof fetch;
+
+  const result = await campaignsApi.create("jwt-test", {
+    name: "Followers",
+    audienceType: "followers",
+    targetUsername: "alice",
+    messageText: "Hello",
+    timezone: "UTC",
+    schedule: [{ dayOfWeek: 0, enabled: true, startMinute: 0, endMinute: 1440 }],
+  });
+  expect(result.status).toBe("syncing");
+});
+
+test("campaignsApi.listFollowers GETs paginated followers", async () => {
+  const fetchMock = mock(async (input: RequestInfo | URL) => {
+    expect(String(input)).toContain("/api/hub/x/campaigns/camp-1/followers?page=1&limit=50");
+    return jsonResponse({ data: [], total: 0, page: 1, limit: 50 });
+  });
+  globalThis.fetch = fetchMock as typeof fetch;
+
+  await campaignsApi.listFollowers("jwt-test", "camp-1", { page: 1, limit: 50 });
+});
+
+test("campaignsApi.start POSTs campaign start", async () => {
+  const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(input)).toContain("/api/hub/x/campaigns/camp-1/start");
+    expect(init?.method).toBe("POST");
+    return jsonResponse({ id: "camp-1", status: "pending" });
+  });
+  globalThis.fetch = fetchMock as typeof fetch;
+
+  const result = await campaignsApi.start("jwt-test", "camp-1");
+  expect(result.status).toBe("pending");
+});
+
 test("chatsApi.listConversations GETs chats with pagination", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL) => {
     expect(String(input)).toContain("/api/hub/x/chats?page=1&limit=20");

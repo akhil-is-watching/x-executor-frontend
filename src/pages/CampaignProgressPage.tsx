@@ -1,9 +1,11 @@
+import { CampaignFollowerAudience } from "@/components/CampaignFollowerAudience";
 import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
 import { CampaignStatusBadge } from "@/components/CampaignStatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { formatRelativeEta, isCampaignActive } from "@/lib/campaign-utils";
+import { formatRelativeEta, canStopCampaign, isCampaignPolling } from "@/lib/campaign-utils";
+import { CAMPAIGN_DAY_LABELS, minuteToTimeOption } from "@/lib/campaign-schedule";
 import { isAdmin, useOrgRole } from "@/lib/auth/RequireOrgRole";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { campaignsApi, connectionsApi } from "@/lib/hub/api";
@@ -60,10 +62,11 @@ export function CampaignProgressPage() {
   }, [token, orgId, campaignId]);
 
   useEffect(() => {
-    if (!campaign || !isCampaignActive(campaign.status)) return;
+    if (!campaign) return;
+    if (!isCampaignPolling(campaign.status, campaign.syncStatus)) return;
     const id = setInterval(load, 15_000);
     return () => clearInterval(id);
-  }, [campaign?.status, token, orgId, campaignId]);
+  }, [campaign?.status, campaign?.syncStatus, token, orgId, campaignId]);
 
   async function handleSaveName() {
     if (!token || !campaignId || !admin) return;
@@ -144,7 +147,11 @@ export function CampaignProgressPage() {
         : null;
   const canPause = campaign.status === "running";
   const canResume = campaign.status === "paused";
-  const canStop = ["pending", "running", "paused"].includes(campaign.status);
+  const canStop = canStopCampaign(campaign.status);
+  const isActiveDelivery =
+    campaign.status === "pending" ||
+    campaign.status === "running" ||
+    campaign.status === "paused";
 
   return (
     <div>
@@ -152,6 +159,11 @@ export function CampaignProgressPage() {
         <div>
           <h1 className="text-2xl font-semibold">{campaign.name}</h1>
           <p className="text-muted-foreground font-mono text-xs mt-1">{campaign.id}</p>
+          {campaign.audienceType === "followers" && campaign.targetUsername && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Followers of @{campaign.targetUsername}
+            </p>
+          )}
         </div>
         <CampaignStatusBadge status={campaign.status} />
       </div>
@@ -192,12 +204,25 @@ export function CampaignProgressPage() {
 
       <ErrorAlert error={error} />
 
+      {campaign.audienceType === "followers" && token && campaignId && (
+        <CampaignFollowerAudience
+          token={token}
+          campaignId={campaignId}
+          campaign={campaign}
+          admin={admin}
+          onCampaignUpdated={load}
+        />
+      )}
+
       {admin && (canPause || canResume || canStop) && (
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="text-lg">Campaign controls</CardTitle>
             <CardDescription>
-              Pause to hold new sends, resume to continue, or stop to cancel remaining messages.
+              Pause to hold new sends, resume to continue, or stop to cancel remaining messages
+              {campaign.status === "draft" || campaign.status === "syncing"
+                ? " (including before start)."
+                : "."}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
@@ -240,10 +265,18 @@ export function CampaignProgressPage() {
       {campaign.status === "failed" && (
         <Card className="mb-6 border-destructive/40">
           <CardContent className="py-4 text-sm">
-            Campaign planning failed — usually because no connected accounts have an auth token.{" "}
-            <Link to={`/orgs/${orgId}`} className="text-primary underline">
-              Configure connections
-            </Link>
+            {campaign.audienceType === "followers" && campaign.syncStatus === "failed" ? (
+              <>
+                Follower sync failed{campaign.syncError ? `: ${campaign.syncError}` : "."}
+              </>
+            ) : (
+              <>
+                Campaign planning failed — usually because no connected accounts have an auth token.{" "}
+                <Link to={`/orgs/${orgId}`} className="text-primary underline">
+                  Configure connections
+                </Link>
+              </>
+            )}
           </CardContent>
         </Card>
       )}
@@ -252,9 +285,11 @@ export function CampaignProgressPage() {
         <CardHeader>
           <CardTitle className="text-lg">Delivery</CardTitle>
           <CardDescription>
-            {processed} of {campaign.totalTargets} processed
+            {campaign.audienceType === "followers" && campaign.status === "draft"
+              ? "Select followers and start the campaign to begin delivery."
+              : `${processed} of ${campaign.totalTargets} processed`}
             {senderSummary ? ` · sending from ${senderSummary}` : ""}
-            {eta && isCampaignActive(campaign.status) ? ` · ${eta}` : ""}
+            {eta && isActiveDelivery ? ` · ${eta}` : ""}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -271,7 +306,7 @@ export function CampaignProgressPage() {
             <StatBlock label="Replies" value={campaign.repliesReceived} />
             <StatBlock label="Remaining" value={campaign.remaining} />
           </div>
-          {campaign.expectedEndAt && isCampaignActive(campaign.status) && (
+          {campaign.expectedEndAt && isActiveDelivery && (
             <p className="text-xs text-muted-foreground">
               Estimated finish: {new Date(campaign.expectedEndAt).toLocaleString()}
             </p>
@@ -289,19 +324,49 @@ export function CampaignProgressPage() {
         </CardContent>
       </Card>
 
+      {campaign.schedule && campaign.schedule.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg">Schedule</CardTitle>
+            <CardDescription>
+              {campaign.dmsPerHour} DMs/hour per account ·{" "}
+              {campaign.dailyLimitPerAccount ?? 2000} daily cap · {campaign.timezone ?? "UTC"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-1 text-sm">
+            {campaign.schedule
+              .filter(day => day.enabled)
+              .map(day => (
+                <p key={day.dayOfWeek} className="text-muted-foreground">
+                  {CAMPAIGN_DAY_LABELS[day.dayOfWeek]}: {minuteToTimeOption(day.startMinute)} –{" "}
+                  {minuteToTimeOption(day.endMinute)}
+                </p>
+              ))}
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Message</CardTitle>
-          <CardDescription>{campaign.totalTargets} targets</CardDescription>
+          <CardDescription>
+            {campaign.audienceType === "followers" && campaign.status === "draft"
+              ? "Message preview — targets set when you start"
+              : `${campaign.totalTargets} targets`}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 text-sm">
           <p className="whitespace-pre-wrap rounded-md border border-border bg-muted/30 p-3">{campaign.messageText}</p>
-          <details className="text-muted-foreground">
-            <summary className="cursor-pointer text-foreground">Target usernames ({campaign.targetUsernames.length})</summary>
-            <p className="mt-2 font-mono text-xs break-all">
-              {campaign.targetUsernames.map(u => `@${u}`).join(", ")}
-            </p>
-          </details>
+          {campaign.targetUsernames.length > 0 && (
+            <details className="text-muted-foreground">
+              <summary className="cursor-pointer text-foreground">
+                Target usernames ({campaign.targetUsernames.length})
+              </summary>
+              <p className="mt-2 font-mono text-xs break-all">
+                {campaign.targetUsernames.map(u => `@${u}`).join(", ")}
+              </p>
+            </details>
+          )}
         </CardContent>
       </Card>
 

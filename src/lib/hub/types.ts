@@ -149,6 +149,8 @@ export type CreateOrgInput = {
 };
 
 export type CampaignStatus =
+  | "syncing"
+  | "draft"
   | "pending"
   | "running"
   | "paused"
@@ -156,11 +158,27 @@ export type CampaignStatus =
   | "completed"
   | "failed";
 
+export type CampaignAudienceType = "manual" | "followers";
+
+export type CampaignSyncStatus = "pending" | "syncing" | "completed" | "failed";
+
+export type CampaignScheduleDay = {
+  dayOfWeek: number;
+  enabled: boolean;
+  startMinute: number;
+  endMinute: number;
+};
+
 export type CreateCampaignInput = {
   name: string;
-  targetUsernames: string[];
+  audienceType?: CampaignAudienceType;
+  targetUsername?: string;
+  targetUsernames?: string[];
   messageText: string;
   dmsPerHour?: number;
+  dailyLimitPerAccount?: number;
+  timezone?: string;
+  schedule?: CampaignScheduleDay[];
   accountsToUse?: number;
   connectionIds?: string[];
 };
@@ -169,8 +187,17 @@ export type CreateCampaignResponse = {
   id: string;
   name: string;
   status: CampaignStatus;
+  audienceType?: CampaignAudienceType;
+  targetUsername?: string;
+  syncStatus?: CampaignSyncStatus;
+  syncedFollowerCount?: number;
+  canDmFollowerCount?: number;
+  syncError?: string;
   totalTargets: number;
   dmsPerHour: number;
+  dailyLimitPerAccount?: number;
+  timezone?: string;
+  schedule?: CampaignScheduleDay[];
   accountsToUse?: number;
   connectionIds?: string[];
   messageText: string;
@@ -182,6 +209,11 @@ export type CampaignSummary = {
   id: string;
   name: string;
   status: CampaignStatus;
+  audienceType?: CampaignAudienceType;
+  targetUsername?: string;
+  syncStatus?: CampaignSyncStatus;
+  syncedFollowerCount?: number;
+  canDmFollowerCount?: number;
   totalTargets: number;
   messagesSent: number;
   failedCount: number;
@@ -201,10 +233,19 @@ export type CampaignStatusResponse = {
   orgId: string;
   name: string;
   status: CampaignStatus;
+  audienceType?: CampaignAudienceType;
+  targetUsername?: string;
+  syncStatus?: CampaignSyncStatus;
+  syncedFollowerCount?: number;
+  canDmFollowerCount?: number;
+  syncError?: string;
   messageText: string;
   targetUsernames: string[];
   totalTargets: number;
   dmsPerHour: number;
+  dailyLimitPerAccount?: number;
+  timezone?: string;
+  schedule?: CampaignScheduleDay[];
   accountsToUse?: number;
   connectionIds?: string[];
   messagesScheduled: number;
@@ -229,6 +270,31 @@ export type CampaignControlResponse = {
   completedAt?: string;
   stoppedAt?: string;
   updatedAt: string;
+};
+
+export type CampaignFollower = {
+  id: string;
+  xUserId: string;
+  userName: string;
+  name: string;
+  canDm: boolean;
+  selected: boolean;
+  profilePicture?: string;
+  description?: string;
+  followers?: number;
+  following?: number;
+};
+
+export type CampaignFollowersListResponse = {
+  data: CampaignFollower[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+export type UpdateFollowerSelectionInput = {
+  followerIds: string[];
+  selected: boolean;
 };
 
 export type DmMessageDirection = "inbound" | "outbound";

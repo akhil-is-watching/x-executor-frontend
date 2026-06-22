@@ -1,3 +1,4 @@
+import { CampaignScheduleSection } from "@/components/CampaignScheduleSection";
 import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,11 +12,17 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { parseTargetUsernames } from "@/lib/campaign-utils";
+import {
+  createDefaultCampaignSchedule,
+  detectBrowserTimezone,
+  validateCampaignSchedule,
+  type CampaignScheduleDay,
+} from "@/lib/campaign-schedule";
 import { campaignsApi } from "@/lib/hub/api";
 import type { Connection } from "@/lib/hub/types";
 import { useEffect, useState, type FormEvent } from "react";
 
-const DMS_PER_HOUR_OPTIONS = [5, 10, 15, 20, 25, 30] as const;
+const DMS_PER_HOUR_DEFAULT = 15;
 
 type CampaignCreateFormProps = {
   token: string;
@@ -25,25 +32,35 @@ type CampaignCreateFormProps = {
 
 export function CampaignCreateForm({ token, connections, onCreated }: CampaignCreateFormProps) {
   const [name, setName] = useState("");
+  const [audienceType, setAudienceType] = useState<"manual" | "followers">("manual");
   const [targetsRaw, setTargetsRaw] = useState("");
+  const [targetUsername, setTargetUsername] = useState("");
   const [messageText, setMessageText] = useState("");
-  const [dmsPerHour, setDmsPerHour] = useState<string>("15");
+  const [dmsPerHour, setDmsPerHour] = useState(DMS_PER_HOUR_DEFAULT);
+  const [dailyLimitPerAccount, setDailyLimitPerAccount] = useState(2000);
+  const [timezone, setTimezone] = useState(detectBrowserTimezone);
+  const [schedule, setSchedule] = useState<CampaignScheduleDay[]>(createDefaultCampaignSchedule);
   const [selectedConnectionIds, setSelectedConnectionIds] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const parsedTargets = parseTargetUsernames(targetsRaw);
+  const normalizedTargetUsername = targetUsername.trim().replace(/^@/, "").toLowerCase();
+  const scheduleError = validateCampaignSchedule(schedule);
   const eligibleConnections = connections.filter(c => c.hasAuthToken);
   const authTokenCount = eligibleConnections.length;
   const hasAuthToken = authTokenCount > 0;
-  const selectedRate = Number.parseInt(dmsPerHour, 10);
+  const selectedRate = dmsPerHour;
   const selectedAccountCount = selectedConnectionIds.length;
   const canSubmit =
     name.trim().length > 0 &&
-    parsedTargets.length > 0 &&
+    (audienceType === "manual"
+      ? parsedTargets.length > 0
+      : normalizedTargetUsername.length > 0) &&
     messageText.trim().length > 0 &&
     hasAuthToken &&
     selectedAccountCount > 0 &&
+    !scheduleError &&
     !submitting &&
     Number.isFinite(selectedRate);
 
@@ -76,9 +93,15 @@ export function CampaignCreateForm({ token, connections, onCreated }: CampaignCr
     try {
       const result = await campaignsApi.create(token, {
         name: name.trim(),
-        targetUsernames: parsedTargets,
+        audienceType,
+        ...(audienceType === "manual"
+          ? { targetUsernames: parsedTargets }
+          : { targetUsername: normalizedTargetUsername }),
         messageText: messageText.trim(),
         dmsPerHour: selectedRate,
+        dailyLimitPerAccount,
+        timezone,
+        schedule,
         connectionIds: selectedConnectionIds,
       });
       onCreated(result.id);
@@ -105,21 +128,58 @@ export function CampaignCreateForm({ token, connections, onCreated }: CampaignCr
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="targets">Target usernames</Label>
-        <Textarea
-          id="targets"
-          placeholder={"alice\n@bob\ncharlie"}
-          rows={6}
-          value={targetsRaw}
-          onChange={e => setTargetsRaw(e.target.value)}
-        />
+        <Label htmlFor="audienceType">Audience</Label>
+        <Select
+          value={audienceType}
+          onValueChange={value => setAudienceType(value as "manual" | "followers")}
+        >
+          <SelectTrigger id="audienceType" className="max-w-xs">
+            <SelectValue placeholder="Select audience type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="manual">Manual username list</SelectItem>
+            <SelectItem value="followers">Followers of an account</SelectItem>
+          </SelectContent>
+        </Select>
         <p className="text-xs text-muted-foreground">
-          One username per line or comma-separated. @ prefixes are optional.{" "}
-          {parsedTargets.length > 0 && (
-            <span className="text-foreground">{parsedTargets.length} unique target(s)</span>
-          )}
+          {audienceType === "manual"
+            ? "Provide usernames directly — campaign starts immediately."
+            : "Sync followers from a target account, select recipients, then start manually."}
         </p>
       </div>
+
+      {audienceType === "manual" ? (
+        <div className="space-y-2">
+          <Label htmlFor="targets">Target usernames</Label>
+          <Textarea
+            id="targets"
+            placeholder={"alice\n@bob\ncharlie"}
+            rows={6}
+            value={targetsRaw}
+            onChange={e => setTargetsRaw(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            One username per line or comma-separated. @ prefixes are optional.{" "}
+            {parsedTargets.length > 0 && (
+              <span className="text-foreground">{parsedTargets.length} unique target(s)</span>
+            )}
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <Label htmlFor="targetUsername">Target account</Label>
+          <Input
+            id="targetUsername"
+            placeholder="elonmusk"
+            value={targetUsername}
+            onChange={e => setTargetUsername(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Followers are synced asynchronously (up to ~800). You will choose who to message before
+            starting.
+          </p>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="message">Message</Label>
@@ -195,31 +255,35 @@ export function CampaignCreateForm({ token, connections, onCreated }: CampaignCr
         </p>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="dmsPerHour">Send rate (per account)</Label>
-        <Select value={dmsPerHour} onValueChange={setDmsPerHour}>
-          <SelectTrigger id="dmsPerHour" className="max-w-xs">
-            <SelectValue placeholder="Select DMs per hour" />
-          </SelectTrigger>
-          <SelectContent>
-            {DMS_PER_HOUR_OPTIONS.map(option => (
-              <SelectItem key={option} value={String(option)}>
-                {option} DMs / hour per account
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground">
-          Estimated org throughput:{" "}
-          <span className="text-foreground">
-            {selectedRate * selectedAccountCount} DMs / hour
-          </span>{" "}
-          across {selectedAccountCount} account(s).
-        </p>
-      </div>
+      <CampaignScheduleSection
+        dmsPerHour={dmsPerHour}
+        dailyLimitPerAccount={dailyLimitPerAccount}
+        timezone={timezone}
+        schedule={schedule}
+        onDmsPerHourChange={setDmsPerHour}
+        onDailyLimitChange={setDailyLimitPerAccount}
+        onTimezoneChange={setTimezone}
+        onScheduleChange={setSchedule}
+      />
+
+      {scheduleError && (
+        <p className="text-sm text-destructive">{scheduleError}</p>
+      )}
+
+      <p className="text-xs text-muted-foreground">
+        Estimated org throughput:{" "}
+        <span className="text-foreground">
+          {selectedRate * selectedAccountCount} DMs / hour
+        </span>{" "}
+        across {selectedAccountCount} account(s), within your schedule windows.
+      </p>
 
       <Button type="submit" disabled={!canSubmit}>
-        {submitting ? "Creating…" : "Launch campaign"}
+        {submitting
+          ? "Creating…"
+          : audienceType === "followers"
+            ? "Create & sync followers"
+            : "Launch campaign"}
       </Button>
     </form>
   );

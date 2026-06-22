@@ -19,6 +19,8 @@ import type {
   CampaignStatusResponse,
   CampaignSummary,
   CampaignControlResponse,
+  CampaignFollowersListResponse,
+  UpdateFollowerSelectionInput,
   UpdateCampaignNameResponse,
   PaginatedConversationsResponse,
   PaginatedMessagesResponse,
@@ -196,6 +198,43 @@ export const campaignsApi = {
   stop(token: string, campaignId: string) {
     return hubFetch<CampaignControlResponse>(
       `/x/campaigns/${encodeURIComponent(campaignId)}/stop`,
+      { method: "POST", token },
+    );
+  },
+  listFollowers(
+    token: string,
+    campaignId: string,
+    params?: { page?: number; limit?: number; canDm?: boolean; selected?: boolean; q?: string },
+  ) {
+    const search = new URLSearchParams();
+    if (params?.page !== undefined) search.set("page", String(params.page));
+    if (params?.limit !== undefined) search.set("limit", String(params.limit));
+    if (params?.canDm !== undefined) search.set("canDm", String(params.canDm));
+    if (params?.selected !== undefined) search.set("selected", String(params.selected));
+    if (params?.q) search.set("q", params.q);
+    const query = search.toString();
+    return hubFetch<CampaignFollowersListResponse>(
+      `/x/campaigns/${encodeURIComponent(campaignId)}/followers${query ? `?${query}` : ""}`,
+      { token },
+    );
+  },
+  updateFollowerSelection(
+    token: string,
+    campaignId: string,
+    input: UpdateFollowerSelectionInput,
+  ) {
+    return hubFetch<{ updatedCount: number; selected: boolean }>(
+      `/x/campaigns/${encodeURIComponent(campaignId)}/followers/selection`,
+      {
+        method: "PATCH",
+        token,
+        body: JSON.stringify(input),
+      },
+    );
+  },
+  start(token: string, campaignId: string) {
+    return hubFetch<CreateCampaignResponse>(
+      `/x/campaigns/${encodeURIComponent(campaignId)}/start`,
       { method: "POST", token },
     );
   },

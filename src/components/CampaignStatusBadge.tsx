@@ -3,6 +3,8 @@ import type { CampaignStatus } from "@/lib/hub/types";
 import { cn } from "@/lib/utils";
 
 const labels: Record<CampaignStatus, string> = {
+  syncing: "Syncing",
+  draft: "Draft",
   pending: "Pending",
   running: "Running",
   paused: "Paused",
@@ -12,6 +14,8 @@ const labels: Record<CampaignStatus, string> = {
 };
 
 const variants: Record<CampaignStatus, "secondary" | "default" | "outline" | "destructive"> = {
+  syncing: "secondary",
+  draft: "outline",
   pending: "secondary",
   running: "default",
   paused: "secondary",

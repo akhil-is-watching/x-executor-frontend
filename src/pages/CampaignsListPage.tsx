@@ -1,8 +1,14 @@
 import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
 import { CampaignStatusBadge } from "@/components/CampaignStatusBadge";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth/AuthContext";
+import {
+  formatCampaignAudienceLabel,
+  formatCampaignProgressLabel,
+  isCampaignPolling,
+} from "@/lib/campaign-utils";
 import { campaignsApi } from "@/lib/hub/api";
 import type { CampaignSummary } from "@/lib/hub/types";
 import { useEffect, useState } from "react";
@@ -25,6 +31,21 @@ export function CampaignsListPage() {
       .catch(err => setError(errorMessage(err)))
       .finally(() => setLoading(false));
   }, [token]);
+
+  const hasPollingCampaigns = campaigns.some(campaign =>
+    isCampaignPolling(campaign.status, campaign.syncStatus),
+  );
+
+  useEffect(() => {
+    if (!token || !hasPollingCampaigns) return;
+    const id = setInterval(() => {
+      campaignsApi
+        .list(token)
+        .then(setCampaigns)
+        .catch(() => undefined);
+    }, 15_000);
+    return () => clearInterval(id);
+  }, [token, hasPollingCampaigns]);
 
   return (
     <div>
@@ -72,22 +93,30 @@ export function CampaignsListPage() {
                     </CardTitle>
                     <CardDescription>
                       Created {new Date(campaign.createdAt).toLocaleString()}
+                      {formatCampaignAudienceLabel(campaign)
+                        ? ` · ${formatCampaignAudienceLabel(campaign)}`
+                        : ""}
                       {campaign.completedAt
                         ? ` · Completed ${new Date(campaign.completedAt).toLocaleString()}`
                         : ""}
                     </CardDescription>
                   </div>
-                  <CampaignStatusBadge status={campaign.status} />
+                  <div className="flex flex-wrap items-center gap-2">
+                    {campaign.audienceType === "followers" && (
+                      <Badge variant="outline">Followers</Badge>
+                    )}
+                    <CampaignStatusBadge status={campaign.status} />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="flex flex-wrap items-center justify-between gap-3 text-sm">
                 <p className="text-muted-foreground">
-                  {campaign.messagesSent + campaign.failedCount} of {campaign.totalTargets} processed
-                  {" · "}
-                  {campaign.progressPercent}% complete
+                  {formatCampaignProgressLabel(campaign)}
                 </p>
                 <Button asChild variant="outline" size="sm">
-                  <Link to={`/orgs/${orgId}/campaigns/${campaign.id}`}>View progress</Link>
+                  <Link to={`/orgs/${orgId}/campaigns/${campaign.id}`}>
+                    {campaign.status === "draft" ? "Select audience" : "View progress"}
+                  </Link>
                 </Button>
               </CardContent>
             </Card>
