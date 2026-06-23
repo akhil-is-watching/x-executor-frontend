@@ -198,6 +198,8 @@ export type CreateCampaignResponse = {
   status: CampaignStatus;
   audienceType?: CampaignAudienceType;
   targetUsername?: string;
+  targetDisplayName?: string;
+  targetProfilePictureUrl?: string;
   syncStatus?: CampaignSyncStatus;
   syncedFollowerCount?: number;
   canDmFollowerCount?: number;
@@ -220,6 +222,8 @@ export type CampaignSummary = {
   status: CampaignStatus;
   audienceType?: CampaignAudienceType;
   targetUsername?: string;
+  targetDisplayName?: string;
+  targetProfilePictureUrl?: string;
   syncStatus?: CampaignSyncStatus;
   syncedFollowerCount?: number;
   canDmFollowerCount?: number;
@@ -244,6 +248,8 @@ export type CampaignStatusResponse = {
   status: CampaignStatus;
   audienceType?: CampaignAudienceType;
   targetUsername?: string;
+  targetDisplayName?: string;
+  targetProfilePictureUrl?: string;
   syncStatus?: CampaignSyncStatus;
   syncedFollowerCount?: number;
   canDmFollowerCount?: number;

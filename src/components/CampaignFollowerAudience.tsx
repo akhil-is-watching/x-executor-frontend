@@ -1,4 +1,5 @@
 import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
+import { CampaignTargetProfile } from "@/components/CampaignTargetProfile";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -144,14 +145,21 @@ export function CampaignFollowerAudience({
             <Badge variant="outline">Auto-started</Badge>
           )}
         </div>
-        <CardDescription>
-          {campaign.targetUsername ? `@${campaign.targetUsername}` : "Target account"}
-          {isSyncing
-            ? " · campaign starts automatically when sync finishes"
-            : isDelivering
-              ? ` · sending to ${campaign.totalTargets || reachableCount} prospect(s)`
-              : ""}
-          {isSyncing && refreshing ? " · updating…" : ""}
+        <CardDescription className="space-y-2">
+          <CampaignTargetProfile
+            targetUsername={campaign.targetUsername}
+            targetDisplayName={campaign.targetDisplayName}
+            targetProfilePictureUrl={campaign.targetProfilePictureUrl}
+            size="sm"
+          />
+          <span>
+            {isSyncing
+              ? "Campaign starts automatically when sync finishes"
+              : isDelivering
+                ? `Sending to ${campaign.totalTargets || reachableCount} prospect(s)`
+                : ""}
+            {isSyncing && refreshing ? " · updating…" : ""}
+          </span>
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

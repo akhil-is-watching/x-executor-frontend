@@ -1,4 +1,5 @@
 import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
+import { CampaignTargetProfile } from "@/components/CampaignTargetProfile";
 import { CampaignStatusBadge } from "@/components/CampaignStatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -91,13 +92,20 @@ export function CampaignsListPage() {
                         {campaign.name}
                       </Link>
                     </CardTitle>
-                    <CardDescription>
-                      Created {new Date(campaign.createdAt).toLocaleString()}
-                      {formatCampaignAudienceLabel(campaign)
-                        ? ` · ${formatCampaignAudienceLabel(campaign)}`
-                        : ""}
+                    <CardDescription className="space-y-2">
+                      <span>Created {new Date(campaign.createdAt).toLocaleString()}</span>
+                      {campaign.audienceType === "followers" && campaign.targetUsername ? (
+                        <CampaignTargetProfile
+                          targetUsername={campaign.targetUsername}
+                          targetDisplayName={campaign.targetDisplayName}
+                          targetProfilePictureUrl={campaign.targetProfilePictureUrl}
+                          size="sm"
+                        />
+                      ) : formatCampaignAudienceLabel(campaign) ? (
+                        <span>{formatCampaignAudienceLabel(campaign)}</span>
+                      ) : null}
                       {campaign.completedAt
-                        ? ` · Completed ${new Date(campaign.completedAt).toLocaleString()}`
+                        ? `Completed ${new Date(campaign.completedAt).toLocaleString()}`
                         : ""}
                     </CardDescription>
                   </div>

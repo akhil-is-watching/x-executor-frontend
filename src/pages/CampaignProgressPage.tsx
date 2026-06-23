@@ -1,4 +1,5 @@
 import { CampaignFollowerAudience } from "@/components/CampaignFollowerAudience";
+import { CampaignTargetProfile } from "@/components/CampaignTargetProfile";
 import { FollowerSyncStats } from "@/components/FollowerSyncStats";
 import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
 import { CampaignStatusBadge } from "@/components/CampaignStatusBadge";
@@ -165,9 +166,13 @@ export function CampaignProgressPage() {
           <h1 className="text-2xl font-semibold">{campaign.name}</h1>
           <p className="text-muted-foreground font-mono text-xs mt-1">{campaign.id}</p>
           {campaign.audienceType === "followers" && campaign.targetUsername && (
-            <p className="text-sm text-muted-foreground mt-1">
-              Followers of @{campaign.targetUsername}
-            </p>
+            <div className="mt-3">
+              <CampaignTargetProfile
+                targetUsername={campaign.targetUsername}
+                targetDisplayName={campaign.targetDisplayName}
+                targetProfilePictureUrl={campaign.targetProfilePictureUrl}
+              />
+            </div>
           )}
         </div>
         <CampaignStatusBadge status={campaign.status} />
