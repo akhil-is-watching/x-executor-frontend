@@ -205,6 +205,12 @@ export type CreateCampaignInput = {
   audienceType?: CampaignAudienceType;
   targetUsername?: string;
   targetUsernames?: string[];
+  targetDisplayName?: string;
+  targetProfilePictureUrl?: string;
+  targetIsVerified?: boolean;
+  targetIsBlueVerified?: boolean;
+  targetIsIdentityVerified?: boolean;
+  targetFollowersCount?: number;
   messageText: string;
   dmsPerHour?: number;
   dailyLimitPerAccount?: number;
@@ -320,6 +326,16 @@ export type CampaignControlResponse = {
   completedAt?: string;
   stoppedAt?: string;
   updatedAt: string;
+};
+
+export type TargetProfileResponse = {
+  userName: string;
+  displayName?: string;
+  profilePictureUrl?: string;
+  isVerified?: boolean;
+  isBlueVerified?: boolean;
+  isIdentityVerified?: boolean;
+  followersCount?: number;
 };
 
 export type CampaignFollower = {

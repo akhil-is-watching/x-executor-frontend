@@ -19,6 +19,7 @@ import type {
   CampaignStatusResponse,
   CampaignSummary,
   CampaignControlResponse,
+  TargetProfileResponse,
   CampaignFollowersListResponse,
   UpdateFollowerSelectionInput,
   UpdateCampaignNameResponse,
@@ -201,6 +202,13 @@ export const campaignsApi = {
       token,
       body: JSON.stringify(input),
     });
+  },
+  fetchTargetProfile(token: string, username: string) {
+    const normalized = username.trim().replace(/^@/, "").toLowerCase();
+    return hubFetch<TargetProfileResponse>(
+      `/x/campaigns/target-profile/${encodeURIComponent(normalized)}`,
+      { token },
+    );
   },
   updateName(token: string, campaignId: string, name: string) {
     return hubFetch<UpdateCampaignNameResponse>(`/x/campaigns/${encodeURIComponent(campaignId)}`, {

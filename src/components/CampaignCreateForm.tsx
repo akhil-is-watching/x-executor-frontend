@@ -1,4 +1,5 @@
 import { CampaignScheduleSection } from "@/components/CampaignScheduleSection";
+import { CampaignTargetProfile } from "@/components/CampaignTargetProfile";
 import { ConnectionAvatar } from "@/components/ConnectionAvatar";
 import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ import {
   type CampaignScheduleDay,
 } from "@/lib/campaign-schedule";
 import { campaignsApi } from "@/lib/hub/api";
-import type { Connection } from "@/lib/hub/types";
+import type { Connection, TargetProfileResponse } from "@/lib/hub/types";
 import { useEffect, useState, type FormEvent } from "react";
 
 const DMS_PER_HOUR_DEFAULT = 15;
@@ -36,6 +37,9 @@ export function CampaignCreateForm({ token, connections, onCreated }: CampaignCr
   const [audienceType, setAudienceType] = useState<"manual" | "followers">("manual");
   const [targetsRaw, setTargetsRaw] = useState("");
   const [targetUsername, setTargetUsername] = useState("");
+  const [targetProfile, setTargetProfile] = useState<TargetProfileResponse | null>(null);
+  const [fetchingProfile, setFetchingProfile] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
   const [messageText, setMessageText] = useState("");
   const [dmsPerHour, setDmsPerHour] = useState(DMS_PER_HOUR_DEFAULT);
   const [dailyLimitPerAccount, setDailyLimitPerAccount] = useState(2000);
@@ -69,6 +73,11 @@ export function CampaignCreateForm({ token, connections, onCreated }: CampaignCr
     setSelectedConnectionIds(eligibleConnections.map(connection => connection.id));
   }, [connections]);
 
+  useEffect(() => {
+    setTargetProfile(null);
+    setProfileError(null);
+  }, [normalizedTargetUsername]);
+
   function toggleConnection(connectionId: string, checked: boolean) {
     setSelectedConnectionIds(current => {
       if (checked) {
@@ -86,6 +95,25 @@ export function CampaignCreateForm({ token, connections, onCreated }: CampaignCr
     setSelectedConnectionIds([]);
   }
 
+  async function onFetchTargetProfile() {
+    if (!normalizedTargetUsername) {
+      setProfileError("Enter a target username first.");
+      return;
+    }
+
+    setProfileError(null);
+    setFetchingProfile(true);
+    try {
+      const profile = await campaignsApi.fetchTargetProfile(token, normalizedTargetUsername);
+      setTargetProfile(profile);
+    } catch (err) {
+      setTargetProfile(null);
+      setProfileError(errorMessage(err));
+    } finally {
+      setFetchingProfile(false);
+    }
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
@@ -97,7 +125,19 @@ export function CampaignCreateForm({ token, connections, onCreated }: CampaignCr
         audienceType,
         ...(audienceType === "manual"
           ? { targetUsernames: parsedTargets }
-          : { targetUsername: normalizedTargetUsername }),
+          : {
+              targetUsername: normalizedTargetUsername,
+              ...(targetProfile
+                ? {
+                    targetDisplayName: targetProfile.displayName,
+                    targetProfilePictureUrl: targetProfile.profilePictureUrl,
+                    targetIsVerified: targetProfile.isVerified,
+                    targetIsBlueVerified: targetProfile.isBlueVerified,
+                    targetIsIdentityVerified: targetProfile.isIdentityVerified,
+                    targetFollowersCount: targetProfile.followersCount,
+                  }
+                : {}),
+            }),
         messageText: messageText.trim(),
         dmsPerHour: selectedRate,
         dailyLimitPerAccount,
@@ -167,18 +207,51 @@ export function CampaignCreateForm({ token, connections, onCreated }: CampaignCr
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
-          <Label htmlFor="targetUsername">Target account</Label>
-          <Input
-            id="targetUsername"
-            placeholder="elonmusk"
-            value={targetUsername}
-            onChange={e => setTargetUsername(e.target.value)}
-          />
-          <p className="text-xs text-muted-foreground">
-            Followers are synced asynchronously (up to ~800). You will choose who to message before
-            starting.
-          </p>
+        <div className="space-y-3">
+          <div className="space-y-2">
+            <Label htmlFor="targetUsername">Target account</Label>
+            <div className="flex flex-wrap items-center gap-2 max-w-xl">
+              <Input
+                id="targetUsername"
+                placeholder="elonmusk"
+                value={targetUsername}
+                onChange={e => setTargetUsername(e.target.value)}
+                className="flex-1 min-w-[12rem]"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={!normalizedTargetUsername || fetchingProfile || submitting}
+                onClick={onFetchTargetProfile}
+              >
+                {fetchingProfile ? "Fetching…" : "Fetch profile"}
+              </Button>
+            </div>
+            {profileError && (
+              <p className="text-sm text-destructive">{profileError}</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Fetch the target profile before syncing followers. Followers sync asynchronously
+              (up to ~800) after you create the campaign.
+            </p>
+          </div>
+
+          {targetProfile && (
+            <div className="rounded-lg border border-border p-3 max-w-xl">
+              <CampaignTargetProfile
+                targetUsername={targetProfile.userName}
+                targetDisplayName={targetProfile.displayName}
+                targetProfilePictureUrl={targetProfile.profilePictureUrl}
+                targetIsVerified={targetProfile.isVerified}
+                targetIsBlueVerified={targetProfile.isBlueVerified}
+                targetIsIdentityVerified={targetProfile.isIdentityVerified}
+                targetFollowersCount={targetProfile.followersCount}
+                prefix="Target"
+                size="md"
+              />
+            </div>
+          )}
         </div>
       )}
 

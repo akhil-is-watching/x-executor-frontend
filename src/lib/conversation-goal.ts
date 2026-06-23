@@ -1,7 +1,6 @@
 import type {
   ConversationGoal,
   ConversationGoalsConfig,
-  ConversationGoalType,
   Organization,
   OutreachStyle,
   TeamMember,
@@ -16,20 +15,74 @@ export const DEFAULT_BOT_NAME = "Noah AI";
 export const DEFAULT_ESCALATION_CONTACT = "the team";
 export const DEFAULT_OUTREACH_STYLE: OutreachStyle = "subtle";
 
-export const OUTREACH_STYLE_OPTIONS: Array<{ value: OutreachStyle; label: string }> = [
-  { value: "subtle", label: "Subtle" },
-  { value: "assertive", label: "Assertive" },
+export type GoalOptionId = "demo" | "intro" | "followup";
+
+export interface GoalOption {
+  id: GoalOptionId;
+  label: string;
+  template: string;
+}
+
+export const OUTREACH_STYLE_OPTIONS = [
+  { id: "subtle" as const, label: "Subtle" },
+  { id: "assertive" as const, label: "Assertive" },
 ];
 
-export const GOAL_TYPE_OPTIONS: Array<{ value: ConversationGoalType; label: string }> = [
-  { value: "product_signups", label: "Product sign-ups" },
-  { value: "grow_discord", label: "Grow Discord" },
-  { value: "grow_telegram", label: "Grow Telegram" },
-  { value: "book_a_call", label: "Book a call" },
-  { value: "collect_leads", label: "Collect leads" },
-  { value: "drive_traffic", label: "Drive traffic" },
-  { value: "custom", label: "Custom" },
+export const GOAL_OPTIONS: GoalOption[] = [
+  {
+    id: "demo",
+    label: "Book a Demo",
+    template:
+      "Convince the user to schedule a product demo. Highlight key benefits from the reference doc and offer a clear next step to book time.",
+  },
+  {
+    id: "intro",
+    label: "Product Introduction",
+    template:
+      "Introduce the product to a cold lead. Explain what it does, who it's for, and why it might be relevant based on the reference doc.",
+  },
+  {
+    id: "followup",
+    label: "Follow Up",
+    template:
+      "Follow up on a previous conversation or interest signal. Re-engage politely, reference prior context, and nudge toward the next action.",
+  },
 ];
+
+export function buildGoalText(option: GoalOption): string {
+  return option.template;
+}
+
+export function findGoalOptionById(id: GoalOptionId): GoalOption | undefined {
+  return GOAL_OPTIONS.find(option => option.id === id);
+}
+
+export function resolveGoalOptionIdFromDetails(details: string): GoalOptionId | null {
+  const trimmed = details.trim();
+  if (!trimmed) return null;
+  const match = GOAL_OPTIONS.find(option => option.template === trimmed);
+  return match?.id ?? null;
+}
+
+export function isGoalConfigured(selectedGoalId: GoalOptionId | null): boolean {
+  return selectedGoalId !== null;
+}
+
+export function buildGoalsConfigFromSelectedGoal(
+  selectedGoalId: GoalOptionId | null,
+): ConversationGoalsConfig {
+  if (!selectedGoalId) {
+    return { ...DEFAULT_CONVERSATION_GOALS };
+  }
+  const option = findGoalOptionById(selectedGoalId);
+  if (!option) {
+    return { ...DEFAULT_CONVERSATION_GOALS };
+  }
+  return {
+    types: ["custom"],
+    details: buildGoalText(option),
+  };
+}
 
 function isLegacyGoal(value: unknown): value is ConversationGoal {
   if (!value || typeof value !== "object") return false;
@@ -160,26 +213,20 @@ export function hasPublishedReplyConfig(
   return Boolean(normalizeGoalsConfig(org?.conversationGoals ?? org?.conversationGoal) || org?.systemPrompt?.trim());
 }
 
-export function isGoalsSelectionValid(goals: ConversationGoalsConfig): boolean {
-  return goals.types.length === 0 || goals.details.trim().length > 0;
-}
-
-export function isReplyConfigDraftValid(systemPrompt: string, goals: ConversationGoalsConfig): boolean {
+export function isReplyConfigDraftValid(
+  systemPrompt: string,
+  selectedGoalId: GoalOptionId | null,
+): boolean {
   const hasPrompt = systemPrompt.trim().length > 0;
-  const hasGoals = goals.types.length > 0 && goals.details.trim().length > 0;
-  if (goals.types.length > 0 && !goals.details.trim()) return false;
-  return hasPrompt || hasGoals;
+  const hasGoal = isGoalConfigured(selectedGoalId);
+  return hasPrompt || hasGoal;
 }
 
-export function toggleGoalType(
-  types: ConversationGoalType[],
-  value: ConversationGoalType,
-): ConversationGoalType[] {
-  return types.includes(value) ? types.filter(type => type !== value) : [...types, value];
-}
-
-export function hasSavedReplyConfig(systemPrompt: string, goals: ConversationGoalsConfig): boolean {
-  return isReplyConfigDraftValid(systemPrompt, goals);
+export function hasSavedReplyConfig(
+  systemPrompt: string,
+  selectedGoalId: GoalOptionId | null,
+): boolean {
+  return isReplyConfigDraftValid(systemPrompt, selectedGoalId);
 }
 
 export function normalizeTeamMembersForSave(members: TeamMember[]): TeamMember[] {

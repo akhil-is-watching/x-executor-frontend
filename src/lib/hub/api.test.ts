@@ -1,4 +1,5 @@
 import { afterEach, expect, mock, test } from "bun:test";
+import { GOAL_OPTIONS } from "@/lib/conversation-goal";
 import { campaignsApi, chatsApi, connectionsApi, invitesApi, xSettingsApi } from "./api";
 
 const originalFetch = globalThis.fetch;
@@ -106,6 +107,25 @@ test("campaignsApi.create POSTs follower campaign with schedule", async () => {
   expect(result.status).toBe("syncing");
 });
 
+test("campaignsApi.fetchTargetProfile GETs target profile by username", async () => {
+  const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
+    expect(String(input)).toContain("/api/hub/x/campaigns/target-profile/alice");
+    expect(init?.method).toBeUndefined();
+    return jsonResponse({
+      userName: "alice",
+      displayName: "Alice Example",
+      profilePictureUrl: "https://pbs.twimg.com/profile_images/alice.jpg",
+      isBlueVerified: true,
+      followersCount: 1250000,
+    });
+  });
+  globalThis.fetch = fetchMock as typeof fetch;
+
+  const result = await campaignsApi.fetchTargetProfile("jwt-test", "@alice");
+  expect(result.displayName).toBe("Alice Example");
+  expect(result.followersCount).toBe(1250000);
+});
+
 test("campaignsApi.listFollowers GETs paginated followers", async () => {
   const fetchMock = mock(async (input: RequestInfo | URL) => {
     expect(String(input)).toContain("/api/hub/x/campaigns/camp-1/followers?page=1&limit=50");
@@ -139,12 +159,13 @@ test("chatsApi.listConversations GETs chats with pagination", async () => {
 });
 
 test("xSettingsApi.updateGoal PATCHes conversation goal", async () => {
+  const demoTemplate = GOAL_OPTIONS[0].template;
   const fetchMock = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
     expect(String(input)).toContain("/api/hub/x/settings/goal");
     expect(init?.method).toBe("PATCH");
     expect(JSON.parse(String(init?.body))).toEqual({
-      goalTypes: ["grow_discord", "book_a_call"],
-      goalDetails: "Invite people to our Discord.",
+      goalTypes: ["custom"],
+      goalDetails: demoTemplate,
       outreachStyle: "subtle",
       botName: "Noah AI",
       teamMembers: [{ username: "alice", role: "Sales" }],
@@ -155,8 +176,8 @@ test("xSettingsApi.updateGoal PATCHes conversation goal", async () => {
     return jsonResponse({
       id: "org-1",
       conversationGoals: {
-        types: ["grow_discord", "book_a_call"],
-        details: "Invite people to our Discord.",
+        types: ["custom"],
+        details: demoTemplate,
       },
       draftSystemPrompt: "We sell blue widgets.",
       outreachStyle: "subtle",
@@ -166,8 +187,8 @@ test("xSettingsApi.updateGoal PATCHes conversation goal", async () => {
   globalThis.fetch = fetchMock as typeof fetch;
 
   const result = await xSettingsApi.updateGoal("jwt-test", {
-    goalTypes: ["grow_discord", "book_a_call"],
-    goalDetails: "Invite people to our Discord.",
+    goalTypes: ["custom"],
+    goalDetails: demoTemplate,
     outreachStyle: "subtle",
     botName: "Noah AI",
     teamMembers: [{ username: "alice", role: "Sales" }],
