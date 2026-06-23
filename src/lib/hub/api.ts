@@ -25,7 +25,18 @@ import type {
   PaginatedConversationsResponse,
   PaginatedMessagesResponse,
   ValidateConnectionResponse,
+  CampaignFollower,
 } from "./types";
+
+function normalizeCampaignFollower(
+  follower: CampaignFollower & { profilePicture?: string },
+): CampaignFollower {
+  const profilePictureUrl =
+    follower.profilePictureUrl?.trim() || follower.profilePicture?.trim() || undefined;
+  return profilePictureUrl === follower.profilePictureUrl
+    ? follower
+    : { ...follower, profilePictureUrl };
+}
 
 export const authApi = {
   register(email: string, password: string) {
@@ -237,7 +248,10 @@ export const campaignsApi = {
     return hubFetch<CampaignFollowersListResponse>(
       `/x/campaigns/${encodeURIComponent(campaignId)}/followers${query ? `?${query}` : ""}`,
       { token },
-    );
+    ).then(result => ({
+      ...result,
+      data: result.data.map(normalizeCampaignFollower),
+    }));
   },
   updateFollowerSelection(
     token: string,
