@@ -25,6 +25,8 @@ import type {
   UpdateCampaignNameResponse,
   PaginatedConversationsResponse,
   PaginatedMessagesResponse,
+  PaginatedHandoffsResponse,
+  ConversationReplyResponse,
   ValidateConnectionResponse,
   CampaignFollower,
 } from "./types";
@@ -292,9 +294,13 @@ function paginationQuery(page?: number, limit?: number): string {
 }
 
 export const chatsApi = {
-  listConversations(token: string, page = 1, limit = 20) {
+  listConversations(token: string, page = 1, limit = 20, closed?: boolean) {
+    const search = new URLSearchParams();
+    search.set("page", String(page));
+    search.set("limit", String(limit));
+    if (closed !== undefined) search.set("closed", String(closed));
     return hubFetch<PaginatedConversationsResponse>(
-      `/x/chats${paginationQuery(page, limit)}`,
+      `/x/chats?${search.toString()}`,
       { token },
     );
   },
@@ -302,6 +308,55 @@ export const chatsApi = {
     return hubFetch<PaginatedMessagesResponse>(
       `/x/chats/${encodeURIComponent(conversationId)}${paginationQuery(page, limit)}`,
       { token },
+    );
+  },
+  closeConversation(token: string, conversationId: string) {
+    return hubFetch<{ closed: boolean; conversationId: string }>(
+      `/x/chats/${encodeURIComponent(conversationId)}/close`,
+      { method: "POST", token },
+    );
+  },
+  reopenConversation(token: string, conversationId: string) {
+    return hubFetch<{ reopened: boolean; conversationId: string }>(
+      `/x/chats/${encodeURIComponent(conversationId)}/reopen`,
+      { method: "POST", token },
+    );
+  },
+  replyToConversation(token: string, conversationId: string, text: string) {
+    return hubFetch<ConversationReplyResponse>(
+      `/x/chats/${encodeURIComponent(conversationId)}/reply`,
+      { method: "POST", token, body: JSON.stringify({ text }) },
+    );
+  },
+};
+
+export const handoffsApi = {
+  list(token: string, page = 1, limit = 20, status?: string) {
+    const search = new URLSearchParams();
+    search.set("page", String(page));
+    search.set("limit", String(limit));
+    if (status) search.set("status", status);
+    return hubFetch<PaginatedHandoffsResponse>(
+      `/x/handoffs?${search.toString()}`,
+      { token },
+    );
+  },
+  get(token: string, handoffId: string) {
+    return hubFetch<import("./types").HandoffSummary>(
+      `/x/handoffs/${encodeURIComponent(handoffId)}`,
+      { token },
+    );
+  },
+  reply(token: string, handoffId: string, text: string) {
+    return hubFetch<ConversationReplyResponse>(
+      `/x/handoffs/${encodeURIComponent(handoffId)}/reply`,
+      { method: "POST", token, body: JSON.stringify({ text }) },
+    );
+  },
+  resolve(token: string, handoffId: string) {
+    return hubFetch<import("./types").HandoffSummary>(
+      `/x/handoffs/${encodeURIComponent(handoffId)}/resolve`,
+      { method: "PATCH", token },
     );
   },
 };

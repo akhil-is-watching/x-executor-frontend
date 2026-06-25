@@ -375,10 +375,13 @@ export type ChatConversationSummary = {
   conversationId: string;
   recipientId: string;
   recipientUsername?: string;
+  recipientName?: string | null;
+  recipientProfilePictureUrl?: string | null;
   connectionId: string;
   xUsername: string;
   lastMessage: ChatLastMessage;
   messageCount: number;
+  isClosed: boolean;
 };
 
 export type PaginatedConversationsResponse = {
@@ -402,4 +405,36 @@ export type PaginatedMessagesResponse = {
   conversationId: string;
   page: number;
   limit: number;
+  isClosed: boolean;
+  recipientName?: string | null;
+  recipientProfilePictureUrl?: string | null;
+};
+
+export type HandoffSummary = {
+  _id: string;
+  orgId: string;
+  connectionId: string;
+  conversationId: string;
+  recipientId: string;
+  recipientUsername?: string;
+  category: string;
+  triggerReason: string;
+  contextSummary: string;
+  userMessage: string;
+  recentHistory?: Array<{ role: string; content: string }>;
+  status: 'open' | 'resolved';
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PaginatedHandoffsResponse = {
+  data: HandoffSummary[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+export type ConversationReplyResponse = {
+  success: boolean;
+  conversationId: string;
 };
