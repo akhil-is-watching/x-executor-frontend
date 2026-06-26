@@ -7,7 +7,7 @@ import { DraftCard } from "@/components/content/DraftCard";
 import type { TrendTopic, ProductTrendTopic, AngleType, ContentDraft } from "@/lib/content-engine/types";
 import { ErrorAlert } from "@/components/ErrorAlert";
 
-type Tab = "industry" | "custom" | "product" | "drafts";
+type Tab = "industry" | "custom" | "product" | "drafts" | "profile";
 
 interface TabData<T> {
   topics: T[];
@@ -32,6 +32,20 @@ function emptyTab<T>(): TabData<T> {
 
 function emptyDraftsTab(): DraftsTabData {
   return { drafts: [], total: 0, loaded: false, loading: false, error: null };
+}
+
+function ProfileField({ label, value, multiline }: { label: string; value?: string; multiline?: boolean }) {
+  if (!value) return null;
+  return (
+    <div className="space-y-0.5">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      {multiline ? (
+        <p className="text-sm whitespace-pre-wrap">{value}</p>
+      ) : (
+        <p className="text-sm font-medium">{value}</p>
+      )}
+    </div>
+  );
 }
 
 function CacheLabel({ cached, fetchedAt }: { cached: boolean; fetchedAt?: string }) {
@@ -179,6 +193,7 @@ export function ContentTrendsPage() {
     { id: "custom", label: "Your Topics" },
     { id: "product", label: "Product" },
     { id: "drafts", label: `Drafts${draftsTab.total > 0 ? ` (${draftsTab.total})` : ""}` },
+    { id: "profile", label: "Profile" },
   ];
 
   return (
@@ -312,6 +327,77 @@ export function ContentTrendsPage() {
                   deleting={deletingId === d._id}
                 />
               ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Profile */}
+      {activeTab === "profile" && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">Your content identity and voice settings</p>
+            <Link
+              to={`/orgs/${orgId}/content/profile`}
+              className="rounded-md border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted"
+            >
+              Edit Profile
+            </Link>
+          </div>
+
+          {profileLoading ? (
+            <TabSkeleton />
+          ) : !profile ? (
+            <p className="text-sm text-muted-foreground">No profile set up yet.</p>
+          ) : (
+            <div className="space-y-6">
+              {/* Identity */}
+              <section className="space-y-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Identity</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <ProfileField label="Name" value={profile.name} />
+                  <ProfileField label="Role" value={profile.role} />
+                  <ProfileField label="Country" value={profile.country} />
+                  <ProfileField label="Company" value={profile.company} />
+                </div>
+                <ProfileField label="What the company does" value={profile.companyDetails} multiline />
+                <ProfileField label="Background" value={profile.background} multiline />
+              </section>
+
+              {/* Voice samples */}
+              {profile.toneTweets?.length > 0 && (
+                <section className="space-y-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Voice samples ({profile.toneTweets.length})
+                  </p>
+                  <div className="space-y-2">
+                    {profile.toneTweets.map((t) => (
+                      <div
+                        key={t.id}
+                        className="rounded-md border border-border bg-muted/20 px-3 py-2 text-xs whitespace-pre-wrap"
+                      >
+                        {t.text}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Selected topics */}
+              {profile.selectedTopics?.length > 0 && (
+                <section className="space-y-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Topic interests ({profile.selectedTopics.length})
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {profile.selectedTopics.map((t) => (
+                      <span key={t} className="rounded-full border border-border px-3 py-1 text-xs">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </section>
+              )}
             </div>
           )}
         </div>
