@@ -1,6 +1,7 @@
 import { serve } from "bun";
 import index from "./index.html";
 import { proxyToHub } from "./hub-proxy";
+import { proxyToContentEngine } from "./content-engine-proxy";
 
 const port = Number(process.env.PORT ?? 5173);
 
@@ -26,6 +27,14 @@ const server = serve({
       async OPTIONS(req) {
         return proxyToHub(req);
       },
+    },
+    "/api/content-engine/*": {
+      async GET(req) { return proxyToContentEngine(req); },
+      async POST(req) { return proxyToContentEngine(req); },
+      async PUT(req) { return proxyToContentEngine(req); },
+      async PATCH(req) { return proxyToContentEngine(req); },
+      async DELETE(req) { return proxyToContentEngine(req); },
+      async OPTIONS(req) { return proxyToContentEngine(req); },
     },
     "/*": index,
   },
