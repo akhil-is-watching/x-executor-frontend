@@ -14,5 +14,17 @@ export async function proxyToContentEngine(req: Request): Promise<Response> {
     init.body = req.body;
   }
 
-  return fetch(target, init);
+  try {
+    return await fetch(target, init);
+  } catch (err) {
+    const message =
+      err instanceof Error && err.message.includes("ECONNREFUSED")
+        ? `Content Engine is unreachable at ${CONTENT_ENGINE_URL}. Is the service running?`
+        : `Content Engine proxy error: ${err instanceof Error ? err.message : String(err)}`;
+
+    return new Response(JSON.stringify({ message, statusCode: 503 }), {
+      status: 503,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 }
