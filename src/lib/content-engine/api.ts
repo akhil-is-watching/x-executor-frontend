@@ -125,6 +125,9 @@ export const draftsApi = {
       topic?: string;
       angle?: string;
       angleType?: AngleType;
+      sentiment?: string;
+      trendSummary?: string;
+      dataPoints?: { fact: string; source?: string }[];
     },
   ) {
     return ceFetch<ContentDraft>(`/${orgId}/drafts`, {

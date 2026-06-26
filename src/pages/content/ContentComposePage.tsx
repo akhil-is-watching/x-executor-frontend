@@ -32,6 +32,14 @@ export function ContentComposePage() {
   const [angleType, setAngleType] = useState<AngleType>(
     (searchParams.get("angleType") as AngleType) ?? "default",
   );
+
+  // Trend context captured at compose-time; persisted with the draft on first save
+  const trendSentiment = searchParams.get("sentiment") ?? undefined;
+  const trendSummaryParam = searchParams.get("trendSummary") ?? undefined;
+  const dataPointsRaw = searchParams.get("dataPoints");
+  const trendDataPoints = dataPointsRaw
+    ? (JSON.parse(dataPointsRaw) as { fact: string; source?: string }[])
+    : undefined;
   const [userIdea, setUserIdea] = useState("");
   const [tweetText, setTweetText] = useState(searchParams.get("draftText") ?? "");
   // Session-local version history (most recent first). When editing an existing draft,
@@ -128,6 +136,9 @@ export function ContentComposePage() {
           topic,
           angle,
           angleType,
+          sentiment: trendSentiment,
+          trendSummary: trendSummaryParam,
+          dataPoints: trendDataPoints,
         });
         setSavedDraftId(draft._id);
         setSuccessMsg("Draft saved.");

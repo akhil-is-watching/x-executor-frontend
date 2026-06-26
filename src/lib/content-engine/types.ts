@@ -122,6 +122,9 @@ export interface ContentDraft {
   status: "draft" | "posted";
   postedAt?: string;
   xTweetId?: string;
+  sentiment?: string;
+  trendSummary?: string;
+  dataPoints?: { fact: string; source?: string }[];
   createdAt: string;
   updatedAt: string;
 }

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { PostCoachBadge } from "./PostCoachBadge";
+import { cn } from "@/lib/utils";
 import type { ContentDraft } from "@/lib/content-engine/types";
 
 interface DraftCardProps {
@@ -73,6 +74,41 @@ export function DraftCard({ draft, onEdit, onDelete, deleting }: DraftCardProps)
               </p>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Trend context: sentiment + data points captured at compose time */}
+      {(draft.sentiment || draft.dataPoints?.length) && (
+        <div className="space-y-1.5 rounded-md border border-border bg-muted/20 px-3 py-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {draft.sentiment && (
+              <span
+                className={cn(
+                  "rounded-full px-2 py-0.5 text-xs font-medium",
+                  draft.sentiment === "bullish"
+                    ? "bg-green-100 text-green-700"
+                    : draft.sentiment === "bearish"
+                      ? "bg-red-100 text-red-700"
+                      : "bg-muted text-muted-foreground",
+                )}
+              >
+                {draft.sentiment}
+              </span>
+            )}
+            {draft.trendSummary && (
+              <p className="text-xs text-muted-foreground flex-1">{draft.trendSummary}</p>
+            )}
+          </div>
+          {draft.dataPoints?.length ? (
+            <ul className="space-y-1">
+              {draft.dataPoints.map((dp, i) => (
+                <li key={i} className="text-xs text-muted-foreground flex gap-1.5">
+                  <span className="text-primary mt-0.5">·</span>
+                  {dp.fact}
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       )}
 

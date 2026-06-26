@@ -2,13 +2,21 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { TrendTopic, ProductTrendTopic } from "@/lib/content-engine/types";
 
+type TrendMeta = {
+  sentiment?: string;
+  trendSummary?: string;
+  dataPoints?: { fact: string; source?: string }[];
+};
+
 interface IndustryTrendCardProps {
   topic: TrendTopic;
-  onSelectAngle: (angle: string, angleType: "product" | "authentic", title: string) => void;
+  onSelectAngle: (angle: string, angleType: "product" | "authentic", title: string, meta?: TrendMeta) => void;
 }
 
 export function IndustryTrendCard({ topic, onSelectAngle }: IndustryTrendCardProps) {
   const [expanded, setExpanded] = useState(false);
+
+  const meta: TrendMeta = { sentiment: topic.sentiment, trendSummary: topic.summary };
 
   return (
     <div className="rounded-lg border border-border p-4 space-y-3">
@@ -57,7 +65,7 @@ export function IndustryTrendCard({ topic, onSelectAngle }: IndustryTrendCardPro
                   <p className="text-xs flex-1">{angle}</p>
                   <button
                     type="button"
-                    onClick={() => onSelectAngle(angle, "product", topic.title)}
+                    onClick={() => onSelectAngle(angle, "product", topic.title, meta)}
                     className="shrink-0 rounded bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
                   >
                     Write this
@@ -75,7 +83,7 @@ export function IndustryTrendCard({ topic, onSelectAngle }: IndustryTrendCardPro
                 <p className="text-xs flex-1">{topic.authenticAngle}</p>
                 <button
                   type="button"
-                  onClick={() => onSelectAngle(topic.authenticAngle!, "authentic", topic.title)}
+                  onClick={() => onSelectAngle(topic.authenticAngle!, "authentic", topic.title, meta)}
                   className="shrink-0 rounded bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
                 >
                   Write this
@@ -91,11 +99,13 @@ export function IndustryTrendCard({ topic, onSelectAngle }: IndustryTrendCardPro
 
 interface ProductTrendCardProps {
   topic: ProductTrendTopic;
-  onSelectAngle: (angle: string, angleType: "founder", title: string) => void;
+  onSelectAngle: (angle: string, angleType: "founder", title: string, meta?: TrendMeta) => void;
 }
 
 export function ProductTrendCard({ topic, onSelectAngle }: ProductTrendCardProps) {
   const [expanded, setExpanded] = useState(false);
+
+  const meta: TrendMeta = { trendSummary: topic.summary, dataPoints: topic.dataPoints };
 
   return (
     <div className="rounded-lg border border-border p-4 space-y-3">
@@ -134,7 +144,7 @@ export function ProductTrendCard({ topic, onSelectAngle }: ProductTrendCardProps
             <p className="text-xs flex-1">{topic.founderAngle}</p>
             <button
               type="button"
-              onClick={() => onSelectAngle(topic.founderAngle, "founder", topic.title)}
+              onClick={() => onSelectAngle(topic.founderAngle, "founder", topic.title, meta)}
               className="shrink-0 rounded bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
             >
               Write this

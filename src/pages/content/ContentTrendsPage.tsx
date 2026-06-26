@@ -141,8 +141,16 @@ export function ContentTrendsPage() {
     if (activeTab === "drafts" && !draftsTab.loaded && !draftsTab.loading) loadDrafts();
   }, [activeTab, draftsTab.loaded, draftsTab.loading, loadDrafts]);
 
-  function handleSelectAngle(angle: string, angleType: AngleType, title: string) {
+  function handleSelectAngle(
+    angle: string,
+    angleType: AngleType,
+    title: string,
+    meta?: { sentiment?: string; trendSummary?: string; dataPoints?: { fact: string; source?: string }[] },
+  ) {
     const params = new URLSearchParams({ topic: title, angle, angleType });
+    if (meta?.sentiment) params.set("sentiment", meta.sentiment);
+    if (meta?.trendSummary) params.set("trendSummary", meta.trendSummary);
+    if (meta?.dataPoints?.length) params.set("dataPoints", JSON.stringify(meta.dataPoints));
     navigate(`/orgs/${orgId}/content/compose?${params.toString()}`);
   }
 
