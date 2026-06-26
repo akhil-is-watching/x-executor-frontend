@@ -440,3 +440,53 @@ export type ConversationReplyResponse = {
   success: boolean;
   conversationId: string;
 };
+
+export type LeadListSourceType = "followers" | "following" | "tweet_replies" | "retweeters";
+
+export type LeadListStatus = "syncing" | "paused" | "stopped" | "completed" | "failed";
+
+export type LeadList = {
+  id: string;
+  name: string;
+  sourceType: LeadListSourceType;
+  targetUsername?: string;
+  targetDisplayName?: string;
+  targetProfilePictureUrl?: string;
+  targetTweetId?: string;
+  targetTweetPreview?: string;
+  status: LeadListStatus;
+  syncedCount: number;
+  reachableCount: number;
+  syncError?: string;
+  createdAt: string;
+};
+
+export type Lead = {
+  id: string;
+  xUserId: string;
+  userName: string;
+  name: string;
+  profilePicture?: string;
+  description?: string;
+  location?: string;
+  followers?: number;
+  following?: number;
+  canDm: boolean;
+};
+
+export type LeadListLeadsResponse = {
+  data: Lead[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+export type CreateLeadListInput = {
+  name: string;
+  sourceType: LeadListSourceType;
+  targetUsername?: string;
+  targetDisplayName?: string;
+  targetProfilePictureUrl?: string;
+  targetTweetId?: string;
+  targetTweetPreview?: string;
+};

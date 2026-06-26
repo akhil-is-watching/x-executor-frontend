@@ -29,6 +29,10 @@ import type {
   ConversationReplyResponse,
   ValidateConnectionResponse,
   CampaignFollower,
+  LeadList,
+  Lead,
+  LeadListLeadsResponse,
+  CreateLeadListInput,
 } from "./types";
 
 function normalizeCampaignFollower(
@@ -357,6 +361,56 @@ export const handoffsApi = {
     return hubFetch<import("./types").HandoffSummary>(
       `/x/handoffs/${encodeURIComponent(handoffId)}/resolve`,
       { method: "PATCH", token },
+    );
+  },
+};
+
+export const leadsApi = {
+  createList(token: string, input: CreateLeadListInput) {
+    return hubFetch<LeadList>("/x/leads", {
+      method: "POST",
+      token,
+      body: JSON.stringify(input),
+    });
+  },
+  list(token: string) {
+    return hubFetch<LeadList[]>("/x/leads", { token });
+  },
+  get(token: string, listId: string) {
+    return hubFetch<LeadList>(`/x/leads/${encodeURIComponent(listId)}`, { token });
+  },
+  pause(token: string, listId: string) {
+    return hubFetch<LeadList>(`/x/leads/${encodeURIComponent(listId)}/pause`, {
+      method: "POST",
+      token,
+    });
+  },
+  stop(token: string, listId: string) {
+    return hubFetch<LeadList>(`/x/leads/${encodeURIComponent(listId)}/stop`, {
+      method: "POST",
+      token,
+    });
+  },
+  resume(token: string, listId: string) {
+    return hubFetch<LeadList>(`/x/leads/${encodeURIComponent(listId)}/resume`, {
+      method: "POST",
+      token,
+    });
+  },
+  listLeads(
+    token: string,
+    listId: string,
+    params?: { page?: number; limit?: number; canDm?: boolean; q?: string },
+  ) {
+    const search = new URLSearchParams();
+    if (params?.page !== undefined) search.set("page", String(params.page));
+    if (params?.limit !== undefined) search.set("limit", String(params.limit));
+    if (params?.canDm !== undefined) search.set("canDm", String(params.canDm));
+    if (params?.q) search.set("q", params.q);
+    const query = search.toString();
+    return hubFetch<LeadListLeadsResponse>(
+      `/x/leads/${encodeURIComponent(listId)}/leads${query ? `?${query}` : ""}`,
+      { token },
     );
   },
 };
