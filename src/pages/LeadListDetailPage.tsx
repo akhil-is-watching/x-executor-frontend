@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { leadsApi } from "@/lib/hub/api";
-import type { Lead, LeadList, LeadListSourceType, LeadListStatus } from "@/lib/hub/types";
+import type { ImportLeadsInput, Lead, LeadList, LeadListSourceType, LeadListStatus } from "@/lib/hub/types";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
@@ -72,6 +72,12 @@ export function LeadListDetailPage() {
 
   const [controlling, setControlling] = useState(false);
   const [controlError, setControlError] = useState<string | null>(null);
+
+  const [showImport, setShowImport] = useState(false);
+  const [importSource, setImportSource] = useState<LeadListSourceType>("followers");
+  const [importTarget, setImportTarget] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
 
   function loadList(silent = false) {
     if (!token || !listId) return;
@@ -150,6 +156,30 @@ export function LeadListDetailPage() {
     }
   }
 
+  async function handleImport(e: React.FormEvent) {
+    e.preventDefault();
+    if (!token || !listId) return;
+    setImportError(null);
+    setImporting(true);
+    try {
+      const isUserSource = importSource === "followers" || importSource === "following";
+      const input: ImportLeadsInput = {
+        sourceType: importSource,
+        ...(isUserSource
+          ? { targetUsername: importTarget.trim().replace(/^@/, "") }
+          : { targetTweetId: importTarget.trim() }),
+      };
+      const updated = await leadsApi.importMore(token, listId, input);
+      setList(updated);
+      setShowImport(false);
+      setImportTarget("");
+    } catch (err) {
+      setImportError(errorMessage(err));
+    } finally {
+      setImporting(false);
+    }
+  }
+
   if (listLoading) return <p className="text-muted-foreground">Loading…</p>;
   if (!list) return <ErrorAlert error={listError ?? "Lead list not found"} />;
 
@@ -171,6 +201,16 @@ export function LeadListDetailPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">{SOURCE_LABELS[list.sourceType]}</Badge>
           <StatusBadge status={list.status} />
+          {list.status !== "syncing" && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => { setShowImport(v => !v); setImportError(null); }}
+            >
+              {showImport ? "Cancel" : "+ Add leads"}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -216,6 +256,76 @@ export function LeadListDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Import more leads */}
+      {showImport && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg">Add more leads</CardTitle>
+            <CardDescription>
+              Import from any source — new leads are merged into this list (no duplicates).
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleImport} className="space-y-4">
+              <div>
+                <p className="text-sm font-medium mb-2">Source</p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {(["followers", "following", "tweet_replies", "retweeters"] as LeadListSourceType[]).map(src => (
+                    <button
+                      key={src}
+                      type="button"
+                      onClick={() => { setImportSource(src); setImportTarget(""); }}
+                      className={`rounded-lg border px-3 py-2 text-xs text-left transition-colors ${
+                        importSource === src
+                          ? "border-primary bg-primary/10 font-medium"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {SOURCE_LABELS[src]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                {(importSource === "followers" || importSource === "following") ? (
+                  <Input
+                    placeholder="@username"
+                    value={importTarget}
+                    onChange={e => setImportTarget(e.target.value)}
+                    required
+                  />
+                ) : (
+                  <Input
+                    placeholder="Tweet ID or URL"
+                    value={importTarget}
+                    onChange={e => setImportTarget(e.target.value)}
+                    required
+                  />
+                )}
+              </div>
+
+              <ErrorAlert error={importError} />
+
+              <div className="flex gap-2">
+                <Button type="submit" size="sm" disabled={importing || !importTarget.trim()}>
+                  {importing ? "Starting…" : "Start import"}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={importing}
+                  onClick={() => { setShowImport(false); setImportError(null); }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Controls */}
       {(list.status === "syncing" || list.status === "paused") && (

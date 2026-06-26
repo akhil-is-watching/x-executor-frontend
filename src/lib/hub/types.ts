@@ -490,3 +490,12 @@ export type CreateLeadListInput = {
   targetTweetId?: string;
   targetTweetPreview?: string;
 };
+
+export type ImportLeadsInput = {
+  sourceType: LeadListSourceType;
+  targetUsername?: string;
+  targetDisplayName?: string;
+  targetProfilePictureUrl?: string;
+  targetTweetId?: string;
+  targetTweetPreview?: string;
+};

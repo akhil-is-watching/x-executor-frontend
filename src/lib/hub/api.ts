@@ -33,6 +33,7 @@ import type {
   Lead,
   LeadListLeadsResponse,
   CreateLeadListInput,
+  ImportLeadsInput,
 } from "./types";
 
 function normalizeCampaignFollower(
@@ -395,6 +396,13 @@ export const leadsApi = {
     return hubFetch<LeadList>(`/x/leads/${encodeURIComponent(listId)}/resume`, {
       method: "POST",
       token,
+    });
+  },
+  importMore(token: string, listId: string, input: ImportLeadsInput) {
+    return hubFetch<LeadList>(`/x/leads/${encodeURIComponent(listId)}/import`, {
+      method: "POST",
+      token,
+      body: JSON.stringify(input),
     });
   },
   listLeads(
