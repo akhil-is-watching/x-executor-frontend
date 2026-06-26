@@ -10,9 +10,8 @@ export class ContentEngineApiError extends Error {
   }
 }
 
-// Bun replaces import.meta.env.PUBLIC_* with the literal value at build time.
-// The variable must be set in the build environment (Vercel env vars) before the build runs.
-const _CE_BASE: string = import.meta.env?.PUBLIC_CONTENT_ENGINE_URL ?? "";
+// Bun's define in build.ts replaces this exact expression with the env var value at build time.
+const _CE_BASE: string = import.meta.env.PUBLIC_CONTENT_ENGINE_URL ?? "";
 
 function apiBase(): string {
   return _CE_BASE.replace(/\/$/, "");
@@ -32,7 +31,6 @@ export async function ceFetch<T>(
       ...headers,
     },
   });
-  console.log({url, res})
   const contentType = res.headers.get("content-type") ?? "";
   if (!contentType.includes("application/json")) {
     throw new ContentEngineApiError(
