@@ -5,7 +5,7 @@ import { invitesApi } from "@/lib/hub/api";
 import { oauthStartUrl, validateHubPublicBaseUrl } from "@/lib/hub/client";
 import { getOAuthSuccess } from "@/lib/oauth-session";
 import type { InvitePublic } from "@/lib/hub/types";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 export function ConnectPage() {
@@ -13,6 +13,8 @@ export function ConnectPage() {
   const [meta, setMeta] = useState<InvitePublic | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [extensionDetected, setExtensionDetected] = useState<boolean | null>(null);
+  const extTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -23,12 +25,29 @@ export function ConnectPage() {
       .finally(() => setLoading(false));
   }, [token]);
 
-  const invalid =
-    meta && (meta.expired || meta.revoked || meta.maxUsesReached);
+  // Listen for the extension's ready signal (posted from content script via window.postMessage).
+  useEffect(() => {
+    function onMessage(event: MessageEvent) {
+      if (event.source !== window) return;
+      if ((event.data as { type?: string })?.type === "OMNIBOT_EXT_READY") {
+        setExtensionDetected(true);
+        if (extTimeoutRef.current) clearTimeout(extTimeoutRef.current);
+      }
+    }
+    window.addEventListener("message", onMessage);
+    // Give the extension 2 seconds to announce itself; after that assume not installed.
+    extTimeoutRef.current = setTimeout(() => {
+      setExtensionDetected(prev => (prev === null ? false : prev));
+    }, 2000);
+    return () => {
+      window.removeEventListener("message", onMessage);
+      if (extTimeoutRef.current) clearTimeout(extTimeoutRef.current);
+    };
+  }, []);
 
+  const invalid = meta && (meta.expired || meta.revoked || meta.maxUsesReached);
   const hubConfigError = validateHubPublicBaseUrl();
   const recentSuccess = token ? getOAuthSuccess(token) : null;
-
   const hubStartUrl = token && !hubConfigError ? oauthStartUrl(token) : undefined;
 
   if (loading) {
@@ -113,36 +132,86 @@ export function ConnectPage() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Connect your X account</CardTitle>
-        <CardDescription>
-          {meta ? orgLabel(meta.orgName) : "Authorize access for this organization."}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <ErrorAlert error={hubConfigError ?? error} />
-        <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground space-y-2">
-          <p>
-            <strong className="text-foreground">Already logged into X?</strong> That only means you are signed in
-            at x.com. You still need to tap the button below and <strong className="text-foreground">authorize this
-            app</strong> on the X screen (Approve / Authorize).
-          </p>
-          <p>Each invite links one X account to this organization. No dashboard login is required.</p>
-        </div>
-        {hubStartUrl ? (
-          <Button className="w-full" size="lg" asChild>
-            <a href={hubStartUrl} rel="noopener noreferrer">
-              Authorize with X
-            </a>
-          </Button>
-        ) : (
-          <Button className="w-full" size="lg" disabled>
-            Authorize with X
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+    <>
+      {/* Hidden anchor for the extension content script to read the invite token from the DOM. */}
+      {token && (
+        <meta id="omnibot-invite-token" content={token} />
+      )}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Connect your X account</CardTitle>
+          <CardDescription>
+            {meta ? orgLabel(meta.orgName) : "Authorize access for this organization."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <ErrorAlert error={hubConfigError ?? error} />
+
+          {extensionDetected === false && (
+            <div className="rounded-lg border border-border bg-muted/40 p-4 space-y-3 text-sm">
+              <p className="font-medium text-foreground">Install the Omnibot X Connector</p>
+              <p className="text-muted-foreground">
+                This link requires the Omnibot Chrome extension to automatically select and
+                authorize your X account without sharing your password.
+              </p>
+              <Button variant="outline" size="sm" asChild>
+                <a
+                  href="https://chrome.google.com/webstore/detail/omnibot-x-connector"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Install extension →
+                </a>
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                After installing, return to this page and refresh.
+              </p>
+            </div>
+          )}
+
+          {extensionDetected === true && (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-2 text-sm">
+              <p className="font-medium text-foreground">Extension detected</p>
+              <p className="text-muted-foreground">
+                Open the <strong className="text-foreground">Omnibot X Connector</strong> popup in
+                your browser toolbar, select the X account to connect, enter your XChat PIN, then
+                authorize with X.
+              </p>
+            </div>
+          )}
+
+          {extensionDetected === null && (
+            <p className="text-sm text-muted-foreground">Checking for extension…</p>
+          )}
+
+          <div className="border-t border-border pt-4 space-y-3">
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+              Authorize without extension
+            </p>
+            <div className="rounded-lg border border-border bg-muted/40 p-3 text-sm text-muted-foreground space-y-2">
+              <p>
+                <strong className="text-foreground">Already logged into X?</strong> That only means you are signed in
+                at x.com. You still need to tap the button below and{" "}
+                <strong className="text-foreground">authorize this app</strong> on the X screen.
+              </p>
+              <p>Each invite links one X account to this organization. No dashboard login is required.</p>
+            </div>
+            {hubStartUrl ? (
+              <Button className="w-full" size="lg" asChild>
+                <a href={hubStartUrl} rel="noopener noreferrer">
+                  Authorize with X
+                </a>
+              </Button>
+            ) : (
+              <Button className="w-full" size="lg" disabled>
+                Authorize with X
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </>
   );
 }
 

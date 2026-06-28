@@ -88,12 +88,16 @@ export type Invite = {
   id: string;
   inviteToken: string;
   inviteUrl: string;
+  connectUrl?: string;
   expiresAt: string;
   maxUses?: number;
   useCount?: number;
   expired?: boolean;
   createdAt?: string;
 };
+
+export type ConnectAttemptResponse = { nonce: string };
+export type ValidatePinResponse = { ok: boolean };
 
 export type InvitePublic = {
   orgName: string;

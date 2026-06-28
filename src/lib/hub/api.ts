@@ -40,6 +40,8 @@ import type {
   LeadListLeadsResponse,
   CreateLeadListInput,
   ImportLeadsInput,
+  ConnectAttemptResponse,
+  ValidatePinResponse,
 } from "./types";
 
 function normalizeCampaignFollower(
@@ -150,6 +152,28 @@ export const invitesApi = {
       method: "DELETE",
       token,
     });
+  },
+};
+
+export const connectAttemptApi = {
+  /** Step 1 — send scraped X credentials; returns a nonce. */
+  create(inviteToken: string, accessToken: string, ct0: string, twuid: string) {
+    return hubFetch<ConnectAttemptResponse>("/x/connect-attempt", {
+      method: "POST",
+      body: JSON.stringify({ inviteToken, accessToken, ct0, twuid }),
+    });
+  },
+  /** Step 2 — validate xchat PIN before OAuth. */
+  validatePin(nonce: string, xchatPin: string) {
+    return hubFetch<ValidatePinResponse>(`/x/connect-attempt/${encodeURIComponent(nonce)}/validate-pin`, {
+      method: "POST",
+      body: JSON.stringify({ xchatPin }),
+    });
+  },
+  /** Returns the URL to open so the user completes X OAuth (step 3). */
+  oauthStartUrl(nonce: string): string {
+    const base = typeof window !== "undefined" ? window.location.origin : "";
+    return `${base}/api/hub/x/connect-attempt/${encodeURIComponent(nonce)}/oauth-start`;
   },
 };
 
