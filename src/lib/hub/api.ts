@@ -30,6 +30,7 @@ import type {
   ValidateConnectionResponse,
   CampaignFollower,
   LeadList,
+  TweetPreviewResponse,
   Lead,
   LeadListLeadsResponse,
   CreateLeadListInput,
@@ -404,6 +405,12 @@ export const leadsApi = {
       token,
       body: JSON.stringify(input),
     });
+  },
+  getTweetPreview(token: string, tweetId: string) {
+    return hubFetch<TweetPreviewResponse>(
+      `/x/leads/tweet-preview?tweetId=${encodeURIComponent(tweetId)}`,
+      { token },
+    );
   },
   listLeads(
     token: string,

@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { campaignsApi, leadsApi } from "@/lib/hub/api";
-import type { LeadListSourceType, TargetProfileResponse } from "@/lib/hub/types";
+import type { LeadListSourceType, TargetProfileResponse, TweetPreviewResponse } from "@/lib/hub/types";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 type SourceOption = {
@@ -44,7 +44,7 @@ function parseTweetId(value: string): string | null {
   if (/^\d+$/.test(trimmed)) return trimmed;
   // x.com/…/status/ID  or  twitter.com/…/status/ID
   const match = trimmed.match(/\/status\/(\d+)/);
-  return match ? match[1] : null;
+  return match?.[1] ?? null;
 }
 
 export function LeadListCreatePage() {
@@ -60,6 +60,10 @@ export function LeadListCreatePage() {
   const [targetProfile, setTargetProfile] = useState<TargetProfileResponse | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
+
+  const [tweetPreview, setTweetPreview] = useState<TweetPreviewResponse | null>(null);
+  const [tweetPreviewLoading, setTweetPreviewLoading] = useState(false);
+  const tweetPreviewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -101,7 +105,23 @@ export function LeadListCreatePage() {
     setProfileError(null);
     setUsername("");
     setTweetInput("");
+    setTweetPreview(null);
   }, [sourceType]);
+
+  // Fetch tweet preview when tweetId changes
+  useEffect(() => {
+    if (!tweetId || !token) {
+      setTweetPreview(null);
+      return;
+    }
+    if (tweetPreviewTimer.current) clearTimeout(tweetPreviewTimer.current);
+    setTweetPreviewLoading(true);
+    tweetPreviewTimer.current = setTimeout(() => {
+      leadsApi.getTweetPreview(token, tweetId)
+        .then(p => { setTweetPreview(p); setTweetPreviewLoading(false); })
+        .catch(() => { setTweetPreview(null); setTweetPreviewLoading(false); });
+    }, 400);
+  }, [tweetId, token]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -133,7 +153,7 @@ export function LeadListCreatePage() {
             }
           : {
               targetTweetId: tweetId!,
-              targetTweetPreview: tweetInput.trim(),
+              targetTweetPreview: tweetPreview?.text?.slice(0, 200),
             }),
       });
       navigate(`/orgs/${orgId}/leads/${list.id}`);
@@ -281,7 +301,22 @@ export function LeadListCreatePage() {
                     Could not parse a tweet ID from that input.
                   </p>
                 )}
-                {tweetId && (
+                {tweetPreviewLoading && (
+                  <p className="text-sm text-muted-foreground">Loading tweet…</p>
+                )}
+                {tweetPreview && !tweetPreviewLoading && (
+                  <div className="rounded-lg border border-border bg-muted/30 p-3 max-w-sm">
+                    <p className="text-xs font-medium text-muted-foreground mb-1">
+                      @{tweetPreview.authorUsername}
+                    </p>
+                    <p className="text-sm line-clamp-4">{tweetPreview.text}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {tweetPreview.retweetCount != null && `${tweetPreview.retweetCount.toLocaleString()} retweets`}
+                      {tweetPreview.likeCount != null && ` · ${tweetPreview.likeCount.toLocaleString()} likes`}
+                    </p>
+                  </div>
+                )}
+                {tweetId && !tweetPreview && !tweetPreviewLoading && (
                   <p className="text-sm text-muted-foreground">Tweet ID: {tweetId}</p>
                 )}
               </>

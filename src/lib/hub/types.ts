@@ -189,7 +189,7 @@ export type CampaignStatus =
   | "completed"
   | "failed";
 
-export type CampaignAudienceType = "manual" | "followers";
+export type CampaignAudienceType = "manual" | "followers" | "lead_list";
 
 export type CampaignSyncStatus = "pending" | "syncing" | "completed" | "failed";
 
@@ -457,8 +457,19 @@ export type LeadList = {
   status: LeadListStatus;
   syncedCount: number;
   reachableCount: number;
+  totalCount?: number;
   syncError?: string;
   createdAt: string;
+};
+
+export type TweetPreviewResponse = {
+  id: string;
+  text: string;
+  authorUsername?: string;
+  authorName?: string;
+  authorProfilePicture?: string;
+  retweetCount?: number;
+  likeCount?: number;
 };
 
 export type Lead = {

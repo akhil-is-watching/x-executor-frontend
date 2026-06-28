@@ -5,8 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { leadsApi } from "@/lib/hub/api";
-import type { ImportLeadsInput, Lead, LeadList, LeadListSourceType, LeadListStatus } from "@/lib/hub/types";
-import { useCallback, useEffect, useState } from "react";
+import type { ImportLeadsInput, Lead, LeadList, LeadListSourceType, LeadListStatus, TweetPreviewResponse } from "@/lib/hub/types";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 const SOURCE_LABELS: Record<LeadListSourceType, string> = {
@@ -77,6 +77,21 @@ export function LeadListDetailPage() {
   const [importTarget, setImportTarget] = useState("");
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  const [importTweetPreview, setImportTweetPreview] = useState<TweetPreviewResponse | null>(null);
+  const tweetPreviewTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleImportTargetChange(value: string) {
+    setImportTarget(value);
+    setImportTweetPreview(null);
+    if (importSource === "retweeters" && value.trim() && token) {
+      if (tweetPreviewTimer.current) clearTimeout(tweetPreviewTimer.current);
+      tweetPreviewTimer.current = setTimeout(() => {
+        leadsApi.getTweetPreview(token, value.trim())
+          .then(p => setImportTweetPreview(p))
+          .catch(() => setImportTweetPreview(null));
+      }, 600);
+    }
+  }
 
   function loadList(silent = false) {
     if (!token || !listId) return;
@@ -229,7 +244,14 @@ export function LeadListDetailPage() {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <div className="rounded-lg border border-border p-3">
               <p className="text-xs text-muted-foreground">Synced</p>
-              <p className="text-xl font-semibold tabular-nums">{list.syncedCount.toLocaleString()}</p>
+              <p className="text-xl font-semibold tabular-nums">
+                {list.syncedCount.toLocaleString()}
+                {list.totalCount != null && (
+                  <span className="text-sm font-normal text-muted-foreground">
+                    {" "}/ {list.totalCount.toLocaleString()}
+                  </span>
+                )}
+              </p>
             </div>
             <div className="rounded-lg border border-border p-3">
               <p className="text-xs text-muted-foreground">Reachable (can DM)</p>
@@ -241,7 +263,22 @@ export function LeadListDetailPage() {
             </div>
           </div>
 
-          {list.syncedCount > 0 && (
+          {list.totalCount != null && list.totalCount > 0 && (
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Sync progress</span>
+                <span>{Math.round((list.syncedCount / list.totalCount) * 100)}%</span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
+                <div
+                  className="h-full bg-primary transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.round((list.syncedCount / list.totalCount) * 100))}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {list.syncedCount > 0 && list.totalCount == null && (
             <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
               <div
                 className="h-full bg-primary transition-all duration-500"
@@ -274,7 +311,7 @@ export function LeadListDetailPage() {
                     <button
                       key={src}
                       type="button"
-                      onClick={() => { setImportSource(src); setImportTarget(""); }}
+                      onClick={() => { setImportSource(src); setImportTarget(""); setImportTweetPreview(null); }}
                       className={`rounded-lg border px-3 py-2 text-xs text-left transition-colors ${
                         importSource === src
                           ? "border-primary bg-primary/10 font-medium"
@@ -287,21 +324,35 @@ export function LeadListDetailPage() {
                 </div>
               </div>
 
-              <div>
+              <div className="space-y-2">
                 {(importSource === "followers" || importSource === "following") ? (
                   <Input
                     placeholder="@username"
                     value={importTarget}
-                    onChange={e => setImportTarget(e.target.value)}
+                    onChange={e => handleImportTargetChange(e.target.value)}
                     required
                   />
                 ) : (
-                  <Input
-                    placeholder="Tweet ID or URL"
-                    value={importTarget}
-                    onChange={e => setImportTarget(e.target.value)}
-                    required
-                  />
+                  <>
+                    <Input
+                      placeholder="Tweet ID or URL (e.g. https://x.com/user/status/123)"
+                      value={importTarget}
+                      onChange={e => handleImportTargetChange(e.target.value)}
+                      required
+                    />
+                    {importTweetPreview && (
+                      <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
+                        <p className="font-medium text-xs text-muted-foreground mb-1">
+                          @{importTweetPreview.authorUsername}
+                        </p>
+                        <p className="line-clamp-3">{importTweetPreview.text}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {importTweetPreview.retweetCount != null && `${importTweetPreview.retweetCount.toLocaleString()} retweets`}
+                          {importTweetPreview.likeCount != null && ` · ${importTweetPreview.likeCount.toLocaleString()} likes`}
+                        </p>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
