@@ -23,6 +23,11 @@ export function DraftCard({ draft, onEdit, onDelete, deleting }: DraftCardProps)
         {draft.topic && (
           <span className="rounded-full bg-muted px-2 py-0.5">{draft.topic}</span>
         )}
+        {draft.categories?.map((cat) => (
+          <span key={cat} className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
+            {cat}
+          </span>
+        ))}
         {draft.angleType && draft.angleType !== "default" && (
           <span className="rounded-full border border-border px-2 py-0.5 capitalize">
             {draft.angleType}

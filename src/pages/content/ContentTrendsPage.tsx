@@ -145,12 +145,13 @@ export function ContentTrendsPage() {
     angle: string,
     angleType: AngleType,
     title: string,
-    meta?: { sentiment?: string; trendSummary?: string; dataPoints?: { fact: string; source?: string }[] },
+    meta?: { sentiment?: string; trendSummary?: string; dataPoints?: { fact: string; source?: string }[]; categories?: string[] },
   ) {
     const params = new URLSearchParams({ topic: title, angle, angleType });
     if (meta?.sentiment) params.set("sentiment", meta.sentiment);
     if (meta?.trendSummary) params.set("trendSummary", meta.trendSummary);
     if (meta?.dataPoints?.length) params.set("dataPoints", JSON.stringify(meta.dataPoints));
+    if (meta?.categories?.length) params.set("categories", JSON.stringify(meta.categories));
     navigate(`/orgs/${orgId}/content/compose?${params.toString()}`);
   }
 

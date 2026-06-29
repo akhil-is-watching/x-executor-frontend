@@ -34,6 +34,7 @@ export interface TrendTopic {
   angles: string[];
   examplePosts?: { text: string; url?: string }[];
   source: string;
+  categories: string[];
 }
 
 export interface ProductTrendTopic {
@@ -44,6 +45,7 @@ export interface ProductTrendTopic {
   dataPoints: { fact: string; source?: string }[];
   founderAngle: string;
   examplePosts?: { text: string; url?: string }[];
+  categories: string[];
 }
 
 export interface TrendTopicGroup {
@@ -125,6 +127,7 @@ export interface ContentDraft {
   sentiment?: string;
   trendSummary?: string;
   dataPoints?: { fact: string; source?: string }[];
+  categories?: string[];
   createdAt: string;
   updatedAt: string;
 }

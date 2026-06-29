@@ -6,6 +6,7 @@ type TrendMeta = {
   sentiment?: string;
   trendSummary?: string;
   dataPoints?: { fact: string; source?: string }[];
+  categories?: string[];
 };
 
 interface IndustryTrendCardProps {
@@ -16,7 +17,7 @@ interface IndustryTrendCardProps {
 export function IndustryTrendCard({ topic, onSelectAngle }: IndustryTrendCardProps) {
   const [expanded, setExpanded] = useState(false);
 
-  const meta: TrendMeta = { sentiment: topic.sentiment, trendSummary: topic.summary };
+  const meta: TrendMeta = { sentiment: topic.sentiment, trendSummary: topic.summary, categories: topic.categories };
 
   return (
     <div className="rounded-lg border border-border p-4 space-y-3">
@@ -47,6 +48,15 @@ export function IndustryTrendCard({ topic, onSelectAngle }: IndustryTrendCardPro
             <span className="text-xs text-muted-foreground">{expanded ? "▲" : "▼"}</span>
           </div>
         </div>
+        {topic.categories?.length > 0 && (
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {topic.categories.map((cat) => (
+              <span key={cat} className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                {cat}
+              </span>
+            ))}
+          </div>
+        )}
         <p className="mt-1.5 text-xs text-muted-foreground line-clamp-2">{topic.summary}</p>
       </div>
 
@@ -105,7 +115,7 @@ interface ProductTrendCardProps {
 export function ProductTrendCard({ topic, onSelectAngle }: ProductTrendCardProps) {
   const [expanded, setExpanded] = useState(false);
 
-  const meta: TrendMeta = { trendSummary: topic.summary, dataPoints: topic.dataPoints };
+  const meta: TrendMeta = { trendSummary: topic.summary, dataPoints: topic.dataPoints, categories: topic.categories };
 
   return (
     <div className="rounded-lg border border-border p-4 space-y-3">
@@ -120,6 +130,15 @@ export function ProductTrendCard({ topic, onSelectAngle }: ProductTrendCardProps
           <h3 className="text-sm font-medium leading-snug">{topic.title}</h3>
           <span className="text-xs text-muted-foreground">{expanded ? "▲" : "▼"}</span>
         </div>
+        {topic.categories?.length > 0 && (
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {topic.categories.map((cat) => (
+              <span key={cat} className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                {cat}
+              </span>
+            ))}
+          </div>
+        )}
         <p className="mt-1.5 text-xs text-muted-foreground line-clamp-2">{topic.summary}</p>
       </div>
 

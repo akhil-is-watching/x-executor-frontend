@@ -40,6 +40,8 @@ export function ContentComposePage() {
   const trendDataPoints = dataPointsRaw
     ? (JSON.parse(dataPointsRaw) as { fact: string; source?: string }[])
     : undefined;
+  const categoriesRaw = searchParams.get("categories");
+  const trendCategories = categoriesRaw ? (JSON.parse(categoriesRaw) as string[]) : undefined;
   const [userIdea, setUserIdea] = useState("");
   const [tweetText, setTweetText] = useState(searchParams.get("draftText") ?? "");
   // Session-local version history (most recent first). When editing an existing draft,
@@ -139,6 +141,7 @@ export function ContentComposePage() {
           sentiment: trendSentiment,
           trendSummary: trendSummaryParam,
           dataPoints: trendDataPoints,
+          categories: trendCategories,
         });
         setSavedDraftId(draft._id);
         setSuccessMsg("Draft saved.");
