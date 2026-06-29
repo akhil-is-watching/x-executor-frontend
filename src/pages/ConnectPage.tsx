@@ -1,29 +1,24 @@
 import { ErrorAlert, errorMessage } from "@/components/ErrorAlert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { invitesApi, connectAttemptApi } from "@/lib/hub/api";
+import { invitesApi } from "@/lib/hub/api";
 import { apiBase, oauthStartUrl, validateHubPublicBaseUrl } from "@/lib/hub/client";
 import { getOAuthSuccess } from "@/lib/oauth-session";
 import type { InvitePublic } from "@/lib/hub/types";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
-interface XSession {
-  twuid: string;
-  username: string;
-  authToken: string;
-  ct0: string;
-}
+// Noah bridge message types
+const SRC_EXT = "noah-extension";
+const SRC_PAGE = "noah-page";
 
-type Step =
-  | "detecting"
-  | "no-ext"
-  | "pick-account"
-  | "creating"
-  | "enter-pin"
-  | "validating"
-  | "error";
+type ExtStage = "detecting" | "no-ext" | "ready" | "connected";
+
+interface ConnectedPayload {
+  ok: boolean;
+  handle?: string;
+  orgName?: string;
+}
 
 export function ConnectPage() {
   const { token } = useParams<{ token: string }>();
@@ -31,18 +26,13 @@ export function ConnectPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Extension-driven flow state
-  const [step, setStep] = useState<Step>("detecting");
-  const [sessions, setSessions] = useState<XSession[]>([]);
-  const [selectedSession, setSelectedSession] = useState<XSession | null>(null);
-  const [nonce, setNonce] = useState<string | null>(null);
-  const [pin, setPin] = useState("");
-  const [pinError, setPinError] = useState<string | null>(null);
-  const [flowError, setFlowError] = useState<string | null>(null);
+  const [extStage, setExtStage] = useState<ExtStage>("detecting");
+  const [xLoggedIn, setXLoggedIn] = useState<boolean | null>(null);
+  const [connectedHandle, setConnectedHandle] = useState<string | null>(null);
 
   const extDetected = useRef(false);
-  const sessionsRef = useRef<XSession[]>([]);
   const extTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -53,95 +43,68 @@ export function ConnectPage() {
       .finally(() => setLoading(false));
   }, [token]);
 
+  // Noah bridge: detect extension and listen for events
   useEffect(() => {
+    // Check if extension already marked its presence via DOM attribute
+    if (document.documentElement.getAttribute("data-noah-ext")) {
+      extDetected.current = true;
+      setExtStage("ready");
+    }
+
     function onMessage(event: MessageEvent) {
       if (event.source !== window) return;
-      const data = event.data as { type?: string; sessions?: XSession[] };
+      const d = event.data as { source?: string; type?: string; payload?: unknown };
+      if (d?.source !== SRC_EXT) return;
 
-      if (data?.type === "OMNIBOT_EXT_READY") {
-        extDetected.current = true;
-        if (extTimeoutRef.current) clearTimeout(extTimeoutRef.current);
-        // Transition to pick-account once we have sessions (may arrive in either order)
-        if (sessionsRef.current.length > 0 || step === "detecting") {
-          setStep(s => s === "detecting" ? "pick-account" : s);
+      if (d.type === "NOAH_ANNOUNCE" || d.type === "NOAH_PONG") {
+        if (!extDetected.current) {
+          extDetected.current = true;
+          if (extTimeoutRef.current) clearTimeout(extTimeoutRef.current);
+          if (pingRef.current) clearInterval(pingRef.current);
+          setExtStage("ready");
         }
       }
 
-      if (data?.type === "OMNIBOT_SESSIONS") {
-        const incoming = data.sessions ?? [];
-        sessionsRef.current = incoming;
-        setSessions(incoming);
-        if (extDetected.current) {
-          setStep(s => s === "detecting" || s === "pick-account" ? "pick-account" : s);
+      if (d.type === "NOAH_SESSION") {
+        const payload = d.payload as { loggedIn?: boolean };
+        setXLoggedIn(!!payload?.loggedIn);
+      }
+
+      if (d.type === "NOAH_CONNECTED") {
+        const payload = d.payload as ConnectedPayload;
+        if (payload?.ok) {
+          setConnectedHandle(payload.handle ?? null);
+          setExtStage("connected");
         }
       }
     }
 
     window.addEventListener("message", onMessage);
+
+    // Ping the extension periodically until it responds
+    const ping = () => window.postMessage({ source: SRC_PAGE, type: "NOAH_PING" }, "*");
+    ping();
+    pingRef.current = setInterval(ping, 300);
+
     extTimeoutRef.current = setTimeout(() => {
-      if (!extDetected.current) setStep("no-ext");
-    }, 2000);
+      if (!extDetected.current) {
+        if (pingRef.current) clearInterval(pingRef.current);
+        setExtStage("no-ext");
+      }
+    }, 2500);
 
     return () => {
       window.removeEventListener("message", onMessage);
       if (extTimeoutRef.current) clearTimeout(extTimeoutRef.current);
+      if (pingRef.current) clearInterval(pingRef.current);
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const hubConfigError = validateHubPublicBaseUrl();
   const recentSuccess = token ? getOAuthSuccess(token) : null;
   const hubStartUrl = token && !hubConfigError ? oauthStartUrl(token) : undefined;
 
-  async function handlePickAccount(session: XSession) {
-    if (!token) return;
-    setSelectedSession(session);
-    setStep("creating");
-    setFlowError(null);
-    try {
-      const result = await connectAttemptApi.create(token, session.authToken, session.ct0, session.twuid);
-      setNonce(result.nonce);
-      setStep("enter-pin");
-    } catch (err) {
-      setFlowError(errorMessage(err));
-      setStep("error");
-    }
-  }
-
-  async function handleValidatePin() {
-    if (!nonce) return;
-    const trimmed = pin.trim();
-    if (!/^\d{4,8}$/.test(trimmed)) {
-      setPinError("PIN must be 4–8 digits.");
-      return;
-    }
-    setPinError(null);
-    setStep("validating");
-    try {
-      await connectAttemptApi.validatePin(nonce, trimmed);
-      // Redirect to Twitter OAuth — this navigates away from the page.
-      window.location.href = connectAttemptApi.oauthStartUrl(nonce);
-    } catch (err) {
-      setPinError(errorMessage(err));
-      setStep("enter-pin");
-    }
-  }
-
-  function resetFlow() {
-    extDetected.current = false;
-    sessionsRef.current = [];
-    setSessions([]);
-    setSelectedSession(null);
-    setNonce(null);
-    setPin("");
-    setPinError(null);
-    setFlowError(null);
-    setStep("detecting");
-    extTimeoutRef.current = setTimeout(() => {
-      if (!extDetected.current) setStep("no-ext");
-    }, 2000);
-  }
-
-  // ── Early exits for invalid / already-connected states ──────────────────
+  // ── Early exits ──────────────────────────────────────────────────────────
 
   if (loading) {
     return <p className="text-muted-foreground text-center">Loading invite…</p>;
@@ -225,15 +188,40 @@ export function ConnectPage() {
     );
   }
 
-  // ── Main connect flow ────────────────────────────────────────────────────
+  // ── Connected (extension signalled success) ──────────────────────────────
+
+  if (extStage === "connected") {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Account connected</CardTitle>
+          <CardDescription>{meta ? orgLabel(meta.orgName) : ""}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            {connectedHandle
+              ? <><strong className="text-foreground">@{connectedHandle}</strong> is now connected.</>
+              : "Your X account is now connected."}
+          </p>
+          <p>You can close this tab. Admins verify the connection in the dashboard.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // ── Main connect card ────────────────────────────────────────────────────
 
   return (
     <>
-      {token && (
-        <>
-          <meta id="omnibot-invite-token" content={token} />
-          <meta id="omnibot-api-base" content={apiBase()} />
-        </>
+      {/* Noah bridge element — read by the extension content script */}
+      {token && meta && (
+        <div
+          id="noah-invite"
+          data-invite-token={token}
+          data-org-name={meta.orgName}
+          data-backend-url={apiBase()}
+          style={{ display: "none" }}
+        />
       )}
 
       <Card>
@@ -246,17 +234,15 @@ export function ConnectPage() {
         <CardContent className="space-y-4">
           <ErrorAlert error={hubConfigError ?? error} />
 
-          {/* ── Step: detecting extension ── */}
-          {step === "detecting" && (
+          {extStage === "detecting" && (
             <p className="text-sm text-muted-foreground">Checking for extension…</p>
           )}
 
-          {/* ── Step: no extension ── */}
-          {step === "no-ext" && (
+          {extStage === "no-ext" && (
             <div className="rounded-lg border border-border bg-muted/40 p-4 space-y-3 text-sm">
-              <p className="font-medium text-foreground">Install the Omnibot X Connector</p>
+              <p className="font-medium text-foreground">Install the Noah X Connector</p>
               <p className="text-muted-foreground">
-                This link requires the Omnibot Chrome extension to automatically select and
+                This link requires the Noah Chrome extension to automatically select and
                 authorize your X account without sharing your password.
               </p>
               <Button variant="outline" size="sm" asChild>
@@ -274,75 +260,36 @@ export function ConnectPage() {
             </div>
           )}
 
-          {/* ── Step: pick account ── */}
-          {step === "pick-account" && (
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-foreground">Step 1 — Select your X account</p>
-              {sessions.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No X sessions found. Make sure you are logged into x.com in this browser.
-                </p>
+          {extStage === "ready" && (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3 text-sm">
+              {xLoggedIn === false ? (
+                <>
+                  <p className="font-medium text-foreground">Log into X first</p>
+                  <p className="text-muted-foreground">
+                    You're not logged into X. Log in at x.com, then return here and click the
+                    Noah button that appears on the page.
+                  </p>
+                  <Button variant="outline" size="sm" asChild>
+                    <a href="https://x.com/login" target="_blank" rel="noopener noreferrer">
+                      Open x.com
+                    </a>
+                  </Button>
+                </>
               ) : (
-                sessions.map(session => (
-                  <button
-                    key={session.twuid}
-                    onClick={() => handlePickAccount(session)}
-                    className="w-full text-left rounded-lg border border-border bg-card hover:bg-muted/50 p-4 transition-colors"
-                  >
-                    <p className="text-sm font-medium text-foreground">@{session.twuid}</p>
-                    <p className="text-xs text-muted-foreground">ID: {session.twuid}</p>
-                  </button>
-                ))
+                <>
+                  <p className="font-medium text-foreground">Extension detected</p>
+                  <p className="text-muted-foreground">
+                    Click the floating <strong className="text-foreground">Noah</strong> button
+                    on this page to select your X account and enter your XChat PIN.
+                  </p>
+                </>
               )}
+              <p className="text-xs text-muted-foreground">Waiting for you to finish…</p>
             </div>
           )}
 
-          {/* ── Step: creating attempt ── */}
-          {step === "creating" && (
-            <p className="text-sm text-muted-foreground">Starting connection…</p>
-          )}
-
-          {/* ── Step: enter PIN ── */}
-          {step === "enter-pin" && selectedSession && (
-            <div className="space-y-3">
-              <p className="text-sm font-medium text-foreground">Step 2 — Enter XChat PIN</p>
-              <p className="text-sm text-muted-foreground">
-                Enter the XChat PIN for account <strong className="text-foreground">@{selectedSession.twuid}</strong>.
-              </p>
-              <Input
-                type="password"
-                inputMode="numeric"
-                placeholder="4–8 digit PIN"
-                maxLength={8}
-                value={pin}
-                onChange={e => setPin(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") void handleValidatePin(); }}
-                autoFocus
-              />
-              {pinError && <p className="text-sm text-destructive">{pinError}</p>}
-              <Button onClick={() => void handleValidatePin()} className="w-full">
-                Validate PIN &amp; Authorize with X
-              </Button>
-            </div>
-          )}
-
-          {/* ── Step: validating PIN ── */}
-          {step === "validating" && (
-            <p className="text-sm text-muted-foreground">Validating PIN and redirecting to X…</p>
-          )}
-
-          {/* ── Step: error ── */}
-          {step === "error" && (
-            <div className="space-y-3">
-              <ErrorAlert error={flowError ?? "An error occurred."} />
-              <Button variant="outline" onClick={resetFlow} className="w-full">
-                Try again
-              </Button>
-            </div>
-          )}
-
-          {/* ── Fallback: authorize without extension ── */}
-          {(step === "no-ext") && (
+          {/* Fallback OAuth path (no extension) */}
+          {extStage === "no-ext" && (
             <div className="border-t border-border pt-4 space-y-3">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
                 Authorize without extension
