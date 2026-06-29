@@ -5,8 +5,9 @@ import { invitesApi } from "@/lib/hub/api";
 import { apiBase, oauthStartUrl, validateHubPublicBaseUrl } from "@/lib/hub/client";
 import { getOAuthSuccess } from "@/lib/oauth-session";
 import type { InvitePublic } from "@/lib/hub/types";
+import { CheckCircle2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 
 // Noah bridge message types
 const SRC_EXT = "noah-extension";
@@ -22,9 +23,16 @@ interface ConnectedPayload {
 
 export function ConnectPage() {
   const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
   const [meta, setMeta] = useState<InvitePublic | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const oauthConnected = searchParams.get("connected") === "true";
+  const oauthHandle = searchParams.get("handle");
+  const oauthOrgId = searchParams.get("orgId");
+  const oauthError = searchParams.get("error");
+  const oauthErrorDesc = searchParams.get("error_description");
 
   const [extStage, setExtStage] = useState<ExtStage>("detecting");
   const [xLoggedIn, setXLoggedIn] = useState<boolean | null>(null);
@@ -108,6 +116,44 @@ export function ConnectPage() {
 
   if (loading) {
     return <p className="text-muted-foreground text-center">Loading invite…</p>;
+  }
+
+  // ── OAuth redirect landed back here ─────────────────────────────────────
+
+  if (oauthConnected) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-green-500" />
+            <CardTitle>Account connected</CardTitle>
+          </div>
+          <CardDescription>
+            {meta ? orgLabel(meta.orgName) : oauthOrgId ? `Organization ID: ${oauthOrgId}` : "Connection successful."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          {oauthHandle && (
+            <p><strong className="text-foreground">@{oauthHandle}</strong> is now connected.</p>
+          )}
+          <p>You can close this tab. Admins verify the connection in the dashboard under Connections.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (oauthError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Connection failed</CardTitle>
+          <CardDescription>{meta ? orgLabel(meta.orgName) : "Could not complete authorization."}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ErrorAlert error={oauthErrorDesc ?? oauthError} />
+        </CardContent>
+      </Card>
+    );
   }
 
   if (error && !meta) {
