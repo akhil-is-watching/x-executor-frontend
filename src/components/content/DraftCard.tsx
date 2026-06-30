@@ -7,10 +7,11 @@ interface DraftCardProps {
   draft: ContentDraft;
   onEdit: (draft: ContentDraft) => void;
   onDelete: (draftId: string) => void;
+  onUseVersion?: (versionText: string, versionNum: number) => void;
   deleting?: boolean;
 }
 
-export function DraftCard({ draft, onEdit, onDelete, deleting }: DraftCardProps) {
+export function DraftCard({ draft, onEdit, onDelete, onUseVersion, deleting }: DraftCardProps) {
   const [showVersions, setShowVersions] = useState(false);
   const sortedVersions = [...(draft.versions ?? [])].reverse();
 
@@ -90,6 +91,15 @@ export function DraftCard({ draft, onEdit, onDelete, deleting }: DraftCardProps)
                 <p className="text-xs text-muted-foreground line-clamp-2 whitespace-pre-line">
                   {v.text}
                 </p>
+                {!isCurrent && onUseVersion && (
+                  <button
+                    type="button"
+                    onClick={() => onUseVersion(v.text, vNum)}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Use this version
+                  </button>
+                )}
               </div>
             );
           })}

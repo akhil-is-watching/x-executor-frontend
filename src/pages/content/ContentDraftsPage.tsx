@@ -75,6 +75,17 @@ export function ContentDraftsPage() {
     navigate(`/orgs/${orgId}/content/compose?${params.toString()}`);
   }
 
+  function handleUseVersion(draft: ContentDraft, versionText: string) {
+    const params = new URLSearchParams({
+      draftId: draft._id,
+      draftText: versionText,
+      topic: draft.topic ?? "",
+      angle: draft.angle ?? "",
+      angleType: draft.angleType ?? "default",
+    });
+    navigate(`/orgs/${orgId}/content/compose?${params.toString()}`);
+  }
+
   if (profile && !profile.onboardingComplete) {
     return (
       <div className="py-16 text-center space-y-3">
@@ -124,6 +135,7 @@ export function ContentDraftsPage() {
               key={d._id}
               draft={d}
               onEdit={handleEdit}
+              onUseVersion={(text) => handleUseVersion(d, text)}
               onDelete={handleDelete}
               deleting={deletingId === d._id}
             />
