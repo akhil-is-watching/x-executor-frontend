@@ -278,10 +278,21 @@ export type CampaignSummary = {
   canDmFollowerCount?: number;
   totalTargets: number;
   messagesSent: number;
+  repliesReceived?: number;
   failedCount: number;
   progressPercent: number;
   createdAt: string;
   completedAt?: string;
+};
+
+export type AnalyticsOverview = {
+  totalReachouts: number;
+  totalConversations: number;
+  totalRepliesSent: number;
+  totalHandoffs: number;
+  campaignCount: number;
+  totalCampaignReplies: number;
+  replyRate: number;
 };
 
 export type UpdateCampaignNameResponse = {
