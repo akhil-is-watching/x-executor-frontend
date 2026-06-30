@@ -19,6 +19,11 @@ import { OrgInvitesPage } from "@/pages/OrgInvitesPage";
 import { OrgSettingsPage } from "@/pages/OrgSettingsPage";
 import { OrgsListPage } from "@/pages/OrgsListPage";
 import { RegisterPage } from "@/pages/RegisterPage";
+import { ContentProfilePage } from "@/pages/content/ContentProfilePage";
+import { ContentTrendsPage } from "@/pages/content/ContentTrendsPage";
+import { ContentComposePage } from "@/pages/content/ContentComposePage";
+import { ContentDraftsPage } from "@/pages/content/ContentDraftsPage";
+import { ContentTweetsPage } from "@/pages/content/ContentTweetsPage";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 
 const router = createBrowserRouter([
@@ -145,6 +150,46 @@ const router = createBrowserRouter([
         element: (
           <RequireOrgRole adminOnly>
             <OrgSettingsPage />
+          </RequireOrgRole>
+        ),
+      },
+      {
+        path: "orgs/:orgId/content/profile",
+        element: (
+          <RequireOrgRole>
+            <ContentProfilePage />
+          </RequireOrgRole>
+        ),
+      },
+      {
+        path: "orgs/:orgId/content/trends",
+        element: (
+          <RequireOrgRole>
+            <ContentTrendsPage />
+          </RequireOrgRole>
+        ),
+      },
+      {
+        path: "orgs/:orgId/content/compose",
+        element: (
+          <RequireOrgRole>
+            <ContentComposePage />
+          </RequireOrgRole>
+        ),
+      },
+      {
+        path: "orgs/:orgId/content/drafts",
+        element: (
+          <RequireOrgRole>
+            <ContentDraftsPage />
+          </RequireOrgRole>
+        ),
+      },
+      {
+        path: "orgs/:orgId/content/tweets",
+        element: (
+          <RequireOrgRole>
+            <ContentTweetsPage />
           </RequireOrgRole>
         ),
       },

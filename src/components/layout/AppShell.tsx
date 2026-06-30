@@ -64,6 +64,14 @@ export function AppShell() {
                   Invites
                 </NavLink>
                 <NavLink
+                  to={`/orgs/${navOrgId}/content/trends`}
+                  className={({ isActive }) =>
+                    cn("text-muted-foreground hover:text-foreground", isActive && "text-foreground font-medium")
+                  }
+                >
+                  Content
+                </NavLink>
+                <NavLink
                   to={`/orgs/${navOrgId}/settings`}
                   className={({ isActive }) =>
                     cn("text-muted-foreground hover:text-foreground", isActive && "text-foreground font-medium")
