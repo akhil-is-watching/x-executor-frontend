@@ -108,6 +108,8 @@ export interface DraftVersion {
   text: string;
   score: number;
   createdAt: string;
+  angle?: string;
+  angleType?: string;
 }
 
 export interface ContentDraft {

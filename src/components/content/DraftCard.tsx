@@ -103,6 +103,22 @@ export function DraftCard({ draft, onEdit, onDelete, onUseVersion, deleting }: D
                     </span>
                   </div>
 
+                  {/* Angle metadata */}
+                  {(v.angleType || v.angle) && (
+                    <div className="flex items-center gap-2 flex-wrap px-3 pt-2 pb-0">
+                      {v.angleType && (
+                        <span className="rounded-full border border-primary/40 px-2 py-0.5 text-[10px] font-medium capitalize text-primary">
+                          {v.angleType}
+                        </span>
+                      )}
+                      {v.angle && (
+                        <span className="text-[11px] text-muted-foreground truncate max-w-[260px]">
+                          {v.angle}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {/* Tweet text — full, not clamped */}
                   <div className="px-3 py-2.5 bg-background">
                     <p className="text-xs leading-relaxed whitespace-pre-line text-foreground/80">
